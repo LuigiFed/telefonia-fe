@@ -1,0 +1,27 @@
+import type { RequestHandler } from "msw";
+import { AssignmentsService } from "./AssignmentsService";
+import { DeviceManagementService } from "./DeviceManagementService";
+import { MobileProvidersService } from "./MobileProvidersService.ts";
+import { ReferenceService } from "./ReferenceService.ts";
+import { DeviceStatusesService } from "./DeviceStatusService.ts";
+import { DeviceTypesService } from "./DeviceTypeService.ts";
+import { ModelsService } from "./ModelsService.ts";
+import { AssigneesService } from "./AssigneesService.ts";
+import { ServiceTypeService } from "./ServiceTypeService.ts";
+
+
+
+const services = [
+  new ModelsService(),
+  new DeviceTypesService(),
+  new MobileProvidersService(),
+  new DeviceStatusesService(),
+  new AssignmentsService(),
+  new AssigneesService(),
+  new DeviceManagementService(),
+  new ReferenceService(),
+  new ServiceTypeService(),
+];
+
+export const handlers: RequestHandler[] = services.flatMap((s) => s.getHandlers());
+export default handlers;

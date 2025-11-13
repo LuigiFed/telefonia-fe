@@ -1,0 +1,45 @@
+@import url("_variables.css");
+
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+body {
+  font-family: "Titillium Web", sans-serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--body-color) !important;
+  background-attachment: fixed;
+
+  padding: 0;
+  margin: 0;
+
+}
+
+.ellipses-form-summary {
+  white-space: normal;
+  overflow: visible;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+
+
+.bold-text-14 {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.bold-text-28-white {
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.asterisk {
+  color: red
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
