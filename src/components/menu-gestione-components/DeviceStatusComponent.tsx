@@ -39,13 +39,13 @@ function DeviceStatusComponent() {
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [newStatus, setNewStatus] = useState({
-    ID: "",
+    id: "",
     descrizione: "",
     alias: "",
   });
 
   const [searchCriteria, setSearchCriteria] = useState({
-    ID: "",
+    id: "",
     descrizione: "",
     alias: "",
   });
@@ -93,7 +93,7 @@ function DeviceStatusComponent() {
 
   async function handleSave() {
     if (
-      !newStatus.ID?.trim() ||
+      !newStatus.id?.trim() ||
       !newStatus.descrizione?.trim() ||
       !newStatus.alias?.trim()
     ) {
@@ -105,14 +105,14 @@ function DeviceStatusComponent() {
   if (editMode) {
        await axios.put(API.deviceStatuses.update.replace(":id", String(selectedId)),
       {
-        codice: newStatus.ID,
+        codice: newStatus.id,
         descrizione: newStatus.descrizione,
         alias: newStatus.alias,
       }
     );
   } else {
     await axios.post(API.deviceStatuses.create, {
-      codice: newStatus.ID,
+      codice: newStatus.id,
       descrizione: newStatus.descrizione,
       alias: newStatus.alias,
     });
@@ -129,7 +129,7 @@ function DeviceStatusComponent() {
     setOpenAddDialog(false);
     setEditMode(false);
     setSelectedId(null);
-    setNewStatus({ ID: "", descrizione: "", alias: "" });
+    setNewStatus({ id: "", descrizione: "", alias: "" });
   };
 
   const handleDeleteClick = (id: number) => {
@@ -161,7 +161,7 @@ function DeviceStatusComponent() {
     setEditMode(true);
     setSelectedId(status.id);
     setNewStatus({
-      ID: status.codice,
+      id: status.codice,
       descrizione: status.descrizione,
       alias: status.alias,
     });
@@ -193,9 +193,9 @@ function DeviceStatusComponent() {
   const applySearch = () => {
     let results = [...allStatuses];
 
-    if (searchCriteria.ID) {
+    if (searchCriteria.id) {
       results = results.filter((s) =>
-        s.codice.toLowerCase().includes(searchCriteria.ID.trim().toLowerCase())
+        s.codice.toLowerCase().includes(searchCriteria.id.trim().toLowerCase())
       );
     }
     if (searchCriteria.descrizione) {
@@ -220,7 +220,7 @@ function DeviceStatusComponent() {
   };
 
   const clearSearch = () => {
-    setSearchCriteria({ ID: "", descrizione: "", alias: "" });
+    setSearchCriteria({ id: "", descrizione: "", alias: "" });
     setFilteredStatuses(allStatuses);
     setIsFiltered(false);
     setShowList(false);
@@ -248,7 +248,7 @@ function DeviceStatusComponent() {
           variant="contained"
           onClick={() => {
             setEditMode(false);
-            setNewStatus({ ID: "", descrizione: "", alias: "" });
+            setNewStatus({ id: "", descrizione: "", alias: "" });
             setOpenAddDialog(true);
           }}
           sx={{
@@ -282,9 +282,9 @@ function DeviceStatusComponent() {
             </Typography>
             <TextField className="textFieldInput"
               size="small"
-              value={searchCriteria.ID}
+              value={searchCriteria.id}
               onChange={(e) =>
-                setSearchCriteria({ ...searchCriteria, ID: e.target.value })
+                setSearchCriteria({ ...searchCriteria, id: e.target.value })
               }
               variant="outlined"
               sx={{
@@ -427,7 +427,6 @@ function DeviceStatusComponent() {
         </Box>
       </Box>
 
-      {/* Loading */}
       {loading && (
         <Box sx={{ textAlign: "center", py: 4 }}>
           <CircularProgress color="primary" />
@@ -588,9 +587,9 @@ function DeviceStatusComponent() {
             <TextField className="textFieldInput"
               fullWidth
               size="small"
-              value={newStatus.ID}
+              value={newStatus.id}
               onChange={(e) =>
-                setNewStatus({ ...newStatus, ID: e.target.value })
+                setNewStatus({ ...newStatus, id: e.target.value })
               }
               variant="outlined"
               sx={{

@@ -66,7 +66,7 @@ function DeviceModelsComponent() {
   async function getDeviceData() {
     setLoading(true);
     try {
-      const response = await axios.get(API.device.list);
+      const response = await axios.get(API.deviceModels.list);
       const data = response.data || [];
       setAllDevices(data);
       setFilteredDevices(data);
@@ -93,9 +93,9 @@ function DeviceModelsComponent() {
       const payload = { desModello: newDevice.desModello };
 
       if (editMode && selectedId !== null) {
-      await axios.put(API.device.update.replace(":id", String(selectedId)), payload);
+      await axios.put(API.deviceModels.update.replace(":id", String(selectedId)), payload);
     } else {
-      await axios.post(API.device.create, payload);
+      await axios.post(API.deviceModels.create, payload);
     }
 
       await getDeviceData();
@@ -124,7 +124,7 @@ function DeviceModelsComponent() {
 
     setDeleting(true);
     try {
-    const url = API.device.delete.replace(":id", String(deviceToDelete));
+    const url = API.deviceModels.delete.replace(":id", String(deviceToDelete));
     await axios.delete(url);
       await getDeviceData();
       setShowList(true);

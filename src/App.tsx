@@ -65,7 +65,6 @@ function  App() {
                       flex: 1,
                       p: 3,
                       overflow: "auto",     
-                      bgcolor: "background.default",
                       maxWidth: "100%",
                       boxSizing: "border-box",
                     }}

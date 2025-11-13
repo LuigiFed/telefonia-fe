@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
-  Paper,
   TextField,
   Typography,
   Table,
@@ -21,6 +20,7 @@ import {
   DialogContent,
   DialogActions,
   Fab,
+  Paper,
 } from "@mui/material";
 import { MoreVert } from "@mui/icons-material";
 import AddIcon from "@mui/icons-material/Add";
@@ -86,10 +86,10 @@ function DeviceManagementComponent() {
     async function handleReference() {
       try {
         const [types, models, providers, statuses] = await Promise.all([
-          axios.get<Reference[]>("/api/device-types"),
-          axios.get<DeviceModel[]>("/api/v1/modello/all"),
-          axios.get<Reference[]>("/api/mobile-providers"),
-          axios.get<Reference[]>("/api/device-statuses"),
+          axios.get<Reference[]>(API.deviceTypes.list),
+          axios.get<DeviceModel[]>(API.deviceModels.list),
+          axios.get<Reference[]>(API.mobileProviders.list),
+          axios.get<Reference[]>(API.deviceStatuses.list),
         ]);
 
         setDeviceTypes(types.data);
@@ -331,7 +331,7 @@ const handleApplySearch = () => {
         Gestione Dispositivi Telefonia Mobile
       </Typography>
 
-      <Paper sx={{ p: 3, overflow: "hidden" }}>
+      <Box sx={{ p: 3, overflow: "hidden" }}>
         <Box
           sx={{
             display: "flex",
@@ -383,10 +383,19 @@ const handleApplySearch = () => {
               : "Nessun dispositivo trovato."}
           </Typography>
         ) : (
+           <Paper
+               elevation={3}
+            sx={{
+              borderRadius: "12px",
+              overflow: "hidden",
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+            >
           <TableContainer sx={{ maxHeight: "calc(100vh - 280px)" }}>
-            <Table stickyHeader size="small">
+            <Table size="small">
               <TableHead>
-                <TableRow  sx={{ "& .MuiTableCell-root": { width: "2%" } }}>
+                <TableRow  sx={{ "& .MuiTableCell-root": { width: "15%" } }}>
                   <TableCell>
                     <strong>Asset</strong>
                   </TableCell>
@@ -402,7 +411,11 @@ const handleApplySearch = () => {
                   <TableCell>
                     <strong>Gestore</strong>
                   </TableCell>
-                  <TableCell align="center">
+                  <TableCell align="center"   sx={{
+                          fontWeight: 600,
+                          textAlign: "center",
+                          borderLeft: "1px solid var(--neutro-200)",
+                        }}>
                     <strong>Azioni</strong>
                   </TableCell>
                 </TableRow>
@@ -421,6 +434,11 @@ const handleApplySearch = () => {
                     <TableCell>{d.numeroTelefono || "—"}</TableCell>
                     <TableCell>{d.gestore}</TableCell>
                     <TableCell
+                      sx={{
+                          fontWeight: 600,
+                          textAlign: "center",
+                          borderLeft: "1px solid var(--neutro-200)",
+                        }}
                       align="center"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -439,8 +457,9 @@ const handleApplySearch = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          </Paper>
         )}
-      </Paper>
+      </Box>
 
   
       <Dialog

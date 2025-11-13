@@ -21,13 +21,13 @@ export class ModelsService extends RestService<DeviceModel> {
   public getHandlers() {
     return [
       // LIST
-      http.get(API.device.list, async () => {
+      http.get(API.deviceModels.list, async () => {
         await this.delay(500);
         return HttpResponse.json(this.store);
       }),
 
       // CREATE
-       http.post(API.device.create, async ({ request }) => {
+       http.post(API.deviceModels.create, async ({ request }) => {
         await this.delay(500);
         const body = (await request.json()) as Partial<DeviceModel>;
         if (!body || typeof body !== "object") {
@@ -43,7 +43,7 @@ export class ModelsService extends RestService<DeviceModel> {
       }),
 
       // UPDATE
-      http.put(`${API.device.update}`, async ({ params, request }) => {
+      http.put(`${API.deviceModels.update}`, async ({ params, request }) => {
         await this.delay(500);
         const id = Number(params.id);
         const index = this.store.findIndex((x) => x.id === id);
@@ -58,7 +58,7 @@ export class ModelsService extends RestService<DeviceModel> {
       }),
 
       // DELETE + VALIDAZIONE RIFERIMENTI
-       http.delete(`${API.device.delete}`, async ({ params }) => {
+       http.delete(`${API.deviceModels.delete}`, async ({ params }) => {
         await this.delay(300);
         const id = Number(params.id);
         const index = this.store.findIndex((x) => x.id === id);

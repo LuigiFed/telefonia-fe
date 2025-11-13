@@ -4,7 +4,7 @@ import { RestService } from "../RestService";
 const { ACTION, ENTITY } = RestService;
 
 export const API = {
-  device: {
+  deviceModels: {
     list: `${RestService.MODELS}/${ACTION.ALL}` as const,
     create: `${RestService.MODELS}/${ENTITY.MODELS}${ACTION.INSERT}` as const,
     update: `${RestService.MODELS}/${ENTITY.MODELS}${ACTION.UPDATE}/:id` as const,

@@ -32,6 +32,7 @@ import type {
   DeviceType,
   MobileProvider,
 } from "../types/types";
+import "../theme/default/InputFields.css";
 import { API } from "../mock/mock/api/endpoints";
 
 function DeviceAssignmentComponent() {
@@ -75,10 +76,10 @@ function DeviceAssignmentComponent() {
   async function handleSelectData() {
     try {
       const [types, models, providers, statuses] = await Promise.all([
-        axios.get<DeviceType[]>("/api/device-types"),
-        axios.get<DeviceModel[]>("/api/v1/modello/all"),
-        axios.get<MobileProvider[]>("/api/mobile-providers"),
-        axios.get<DeviceStatus[]>("/api/device-statuses"),
+        axios.get<DeviceType[]>(API.deviceTypes.list),
+        axios.get<DeviceModel[]>(API.deviceModels.list),
+        axios.get<MobileProvider[]>(API.mobileProviders.list),
+        axios.get<DeviceStatus[]>(API.deviceStatuses.list),
       ]);
 
       setDeviceTypes(types.data);
@@ -308,7 +309,7 @@ function DeviceAssignmentComponent() {
         Gestione Assegnazione Dispositivi
       </Typography>
 
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Box sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
           1. Seleziona Assegnatario
         </Typography>
@@ -322,10 +323,10 @@ function DeviceAssignmentComponent() {
           }}
         >
           <TextField
+            className="textFieldInput"
             label="Assegnatario Selezionato"
             fullWidth
             size="small"
-    
             value={
               assegnatarioSelezionato
                 ? `${assegnatarioSelezionato.cognome} ${assegnatarioSelezionato.nome} (${assegnatarioSelezionato.id})`
@@ -334,9 +335,7 @@ function DeviceAssignmentComponent() {
             placeholder="Nessun assegnatario selezionato"
             disabled
             sx={{
-              flex: "1 200px",
-              "& .MuiInputBase-root": { backgroundColor: "#fff" },
-              "& .Mui-disabled": { backgroundColor: "#f5f5f5" },
+              flex: "1",
             }}
           />
           <Button
@@ -370,9 +369,8 @@ function DeviceAssignmentComponent() {
         </Box>
 
         {assegnatarioSelezionato && (
-          <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 1 }}>
+          <Box sx={{ mt: 3, p:3, borderRadius: 1 }}>
             <Typography
-              variant="subtitle2"
               color="text.secondary"
               sx={{ mb: 2 }}
             >
@@ -380,7 +378,7 @@ function DeviceAssignmentComponent() {
             </Typography>
             <Grid container spacing={2}>
               <Box
-                sx={{ width: { xs: "100%", sm: "50%", md: "16.666%" }, px: 1 }}
+                sx={{ width: { xs: "100%", md: "16.666%" }, px: 1 }}
               >
                 <TextField
                   className="textFieldInput"
@@ -392,7 +390,7 @@ function DeviceAssignmentComponent() {
                 />
               </Box>
               <Box
-                sx={{ width: { xs: "100%", sm: "50%", md: "16.666%" }, px: 1 }}
+                sx={{ width: { xs: "100%", md: "16.666%" }, px: 1 }}
               >
                 <TextField
                   className="textFieldInput"
@@ -415,7 +413,7 @@ function DeviceAssignmentComponent() {
                   disabled
                 />
               </Box>
-              <Box sx={{ width: { xs: "100%", sm: "50%", md: "25%" }, px: 1 }}>
+              <Box sx={{ width: { xs: "100%", sm: "50%", md: "16.666%" }, px: 1 }}>
                 <TextField
                   className="textFieldInput"
                   label="Tipo Utente"
@@ -442,8 +440,6 @@ function DeviceAssignmentComponent() {
                     label="Note"
                     fullWidth
                     size="small"
-                    multiline
-                    rows={2}
                     value={assegnatarioSelezionato.note}
                     disabled
                   />
@@ -452,9 +448,9 @@ function DeviceAssignmentComponent() {
             </Grid>
           </Box>
         )}
-      </Paper>
+      </Box>
 
-      <Paper
+      <Box
         sx={{
           p: 3,
           mb: 3,
@@ -484,6 +480,7 @@ function DeviceAssignmentComponent() {
         <Grid container spacing={2}>
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               label="Asset *"
               fullWidth
               size="small"
@@ -495,6 +492,7 @@ function DeviceAssignmentComponent() {
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               select
               size="small"
               label="Tipo Dispositivo *"
@@ -514,6 +512,7 @@ function DeviceAssignmentComponent() {
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               select
               label="Modello"
               fullWidth
@@ -523,17 +522,17 @@ function DeviceAssignmentComponent() {
               }
               disabled={!assegnatarioSelezionato}
             >
-              {Array.isArray(deviceModels) &&
-                deviceModels.map((m) => (
-                  <MenuItem key={m.id} value={m.desModello}>
-                    {m.desModello}
-                  </MenuItem>
-                ))}
+              {deviceModels.map((s) => (
+                <MenuItem key={s.id} value={s.desModello}>
+                  {s.desModello}
+                </MenuItem>
+              ))}
             </TextField>
           </Box>
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               label="Numero di Serie"
               fullWidth
               value={newElement.seriale}
@@ -546,6 +545,7 @@ function DeviceAssignmentComponent() {
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               label="IMEI / ICCID"
               fullWidth
               value={newElement.imei}
@@ -556,6 +556,7 @@ function DeviceAssignmentComponent() {
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               select
               label="Operatore / Utenza"
               fullWidth
@@ -565,7 +566,7 @@ function DeviceAssignmentComponent() {
               }
               disabled={!assegnatarioSelezionato}
             >
-              {Array.isArray(mobileProviders) && mobileProviders.map((p) => (
+              {mobileProviders.map((p) => (
                 <MenuItem key={p.id} value={p.descrizione}>
                   {p.descrizione}
                 </MenuItem>
@@ -580,11 +581,11 @@ function DeviceAssignmentComponent() {
               fullWidth
               value={newElement.stato}
               onChange={(e) => setNew({ ...newElement, stato: e.target.value })}
-              disabled={!assegnatarioSelezionato}
+              disabled={!assegnatarioSelezionato || deviceStatuses.length === 0}
             >
-              {Array.isArray(deviceStatuses) && deviceStatuses.map((s) => (
-                <MenuItem key={s.id} value={s.alias}>
-                  {s.descrizione} ({s.alias})
+              {deviceStatuses.map((s) => (
+                <MenuItem key={s.id} value={s.descrizione}>
+                  {s.descrizione}
                 </MenuItem>
               ))}
             </TextField>
@@ -592,6 +593,7 @@ function DeviceAssignmentComponent() {
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               label="Data Inizio"
               type="date"
               fullWidth
@@ -606,6 +608,7 @@ function DeviceAssignmentComponent() {
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               label="Data Fine"
               type="date"
               fullWidth
@@ -620,15 +623,16 @@ function DeviceAssignmentComponent() {
 
           <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 1 }}>
             <TextField
+              className="textFieldInput"
               label="Note"
               fullWidth
+              InputLabelProps={{ shrink: true }}
               size="small"
               multiline
               rows={2}
               value={newElement.note}
               onChange={(e) => setNew({ ...newElement, note: e.target.value })}
               disabled={!assegnatarioSelezionato}
-              InputLabelProps={{ shrink: true }}
               sx={{
                 "& .MuiInputBase-inputMultiline": {
                   paddingTop: "12px",
@@ -643,24 +647,24 @@ function DeviceAssignmentComponent() {
           sx={{ mt: 3, display: "flex", justifyContent: "flex-end", gap: 2 }}
         >
           <Button
-            variant="outlined"
-            onClick={resetForm}
-            disabled={loading || !assegnatarioSelezionato}
-          >
-            Annulla
-          </Button>
-          <Button
             variant="contained"
             onClick={handleSave}
             disabled={loading || !assegnatarioSelezionato}
           >
             {newElement.id ? "Salva Modifica" : "Assegna Dispositivo"}
           </Button>
+          <Button
+            variant="outlined"
+            onClick={resetForm}
+            disabled={loading || !assegnatarioSelezionato}
+          >
+            Annulla
+          </Button>
         </Box>
-      </Paper>
+      </Box>
 
       {assegnatarioSelezionato && (
-        <Paper sx={{ p: 3, mt: 3 }}>
+        <Box sx={{ p: 3, mt: 3 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
             Storico Assegnazioni - {assegnatarioSelezionato.nome}{" "}
             {assegnatarioSelezionato.cognome}
@@ -678,61 +682,78 @@ function DeviceAssignmentComponent() {
               Nessuna assegnazione trovata per questo utente.
             </Typography>
           ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600 }}>Asset</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Modello</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Utenza</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>IMEI</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Serie</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Stato</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Data Inizio</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Data Fine</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Note</TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600 }}>
-                      Azioni
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {devices.map((d) => (
-                    <TableRow
-                      key={d.id!}
-                      hover
-                      sx={{
-                        "&:hover": { backgroundColor: "#f5f5f5" },
-                        cursor: "pointer",
-                      }}
-                    >
-                      <TableCell>{d.asset}</TableCell>
-                      <TableCell>{d.tipo}</TableCell>
-                      <TableCell>{d.modello}</TableCell>
-                      <TableCell>{d.utenza}</TableCell>
-                      <TableCell>{d.imei}</TableCell>
-                      <TableCell>{d.seriale}</TableCell>
-                      <TableCell>{d.stato}</TableCell>
-                      <TableCell>{d.dataInizio}</TableCell>
-                      <TableCell>{d.dataFine || "-"}</TableCell>
-                      <TableCell>{d.note}</TableCell>
-                      <TableCell align="center">
-                        <IconButton
-                          onClick={(e) => handleOpenMenu(e, d.id!)}
-                          size="small"
-                        >
-                          <MoreVert />
-                        </IconButton>
+            <Paper
+               elevation={3}
+            sx={{
+              borderRadius: "12px",
+              overflow: "hidden",
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+            >
+              <TableContainer sx={{ "& .MuiTableCell-root": { width: "13%" } }}>
+                <Table>
+                  <TableHead sx={{ backgroundColor: "var(--table-head)" }}>
+                    <TableRow >
+                      <TableCell sx={{ fontWeight: 600 }}>Asset</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Modello</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Utenza</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>IMEI</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Serie</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Stato</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Data Inizio</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Data Fine</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>Note</TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: "bold",
+                          textAlign: "center",
+                          width: "15%",
+                          borderLeft: "1px solid var(--neutro-200)",
+                        }}
+                      >
+                        Azioni
                       </TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+
+                  <TableBody>
+                    {devices.map((d) => (
+                      <TableRow
+                        key={d.id!}
+                        hover
+                        sx={{
+                          "&:hover": { backgroundColor: "#f5f5f5" },
+                          cursor: "pointer",
+                        }}
+                      >
+                        <TableCell>{d.asset}</TableCell>
+                        <TableCell>{d.tipo}</TableCell>
+                        <TableCell>{d.modello}</TableCell>
+                        <TableCell>{d.utenza}</TableCell>
+                        <TableCell>{d.imei}</TableCell>
+                        <TableCell>{d.seriale}</TableCell>
+                        <TableCell>{d.stato}</TableCell>
+                        <TableCell>{d.dataInizio}</TableCell>
+                        <TableCell>{d.dataFine || "-"}</TableCell>
+                        <TableCell>{d.note}</TableCell>
+                        <TableCell align="center">
+                          <IconButton
+                            onClick={(e) => handleOpenMenu(e, d.id!)}
+                            size="small"
+                          >
+                            <MoreVert />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
           )}
-        </Paper>
+        </Box>
       )}
 
       <Dialog
@@ -761,6 +782,7 @@ function DeviceAssignmentComponent() {
           <Grid container spacing={2}>
             <Box sx={{ width: { xs: "100%", md: "40%" }, px: 1 }}>
               <TextField
+                className="textFieldInput"
                 label="Nominativo"
                 fullWidth
                 value={searchFilters.nominativo}
@@ -770,12 +792,13 @@ function DeviceAssignmentComponent() {
                     nominativo: e.target.value,
                   })
                 }
-                placeholder="es: %rossi%"
+    
               />
             </Box>
             <Box sx={{ width: { xs: "100%", md: "40%" }, px: 1 }}>
               <TextField
-                label="Codice Utente"
+                className="textFieldInput"
+                label ="Id Utente"
                 fullWidth
                 value={searchFilters.codiceUtente}
                 onChange={(e) =>
@@ -784,11 +807,12 @@ function DeviceAssignmentComponent() {
                     codiceUtente: e.target.value,
                   })
                 }
-                placeholder="es: U%"
+                
               />
             </Box>
             <Box sx={{ width: { xs: "100%", md: "40%" }, px: 1 }}>
               <TextField
+                className="textFieldInput"
                 label="Tipo Utente"
                 fullWidth
                 value={searchFilters.tipoUtente}
@@ -798,11 +822,12 @@ function DeviceAssignmentComponent() {
                     tipoUtente: e.target.value,
                   })
                 }
-                placeholder="es: %dipendente%"
+
               />
             </Box>
             <Box sx={{ width: { xs: "100%", md: "40%" }, px: 1 }}>
               <TextField
+                className="textFieldInput"
                 label="Unità Organizzativa"
                 fullWidth
                 value={searchFilters.unitaOrganizzativa}
@@ -812,7 +837,7 @@ function DeviceAssignmentComponent() {
                     unitaOrganizzativa: e.target.value,
                   })
                 }
-                placeholder="es: %IT%"
+      
               />
             </Box>
           </Grid>
