@@ -1,39 +1,39 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
+  CircularProgress,
   Typography,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
   Menu,
   MenuItem,
-  InputAdornment,
-  Collapse,
-  TableContainer,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  Pagination,
-  CircularProgress,
-  Paper,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import SearchIcon from "@mui/icons-material/Search";
+import axios from "axios";
+
+import { DeleteConfirmModal } from "../GenericsComponents/DeleteModal";
+import { GenericFormDialog } from "../GenericsComponents/GenericFormDialog";
+import { GenericSearchHeader } from "../GenericsComponents/GenericSearchHeaders";
+import { GenericSearchFilters } from "../GenericsComponents/GenericSearchFilters";
+import { GenericTable } from "../GenericsComponents/GenericTable";
+import { SuccessModal } from "../GenericsComponents/SuccessModal";
+
 import "../../theme/default/MenuGestioneComponents.css";
 import "../../theme/default/InputFields.css";
-import axios from "axios";
-import type { DeviceStatus } from "../../types/types";
+
 import { API } from "../../mock/mock/api/endpoints";
+import type { DeviceStatus } from "../../types/types";
+
+const ROWS_PER_PAGE = 10;
 
 function DeviceStatusComponent() {
   const [allStatuses, setAllStatuses] = useState<DeviceStatus[]>([]);
   const [filteredStatuses, setFilteredStatuses] = useState<DeviceStatus[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const [searchCriteria, setSearchCriteria] = useState({
+    id: "",
+    descrizione: "",
+    alias: "",
+  });
+
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -43,36 +43,25 @@ function DeviceStatusComponent() {
     alias: "",
   });
 
-  const [searchCriteria, setSearchCriteria] = useState({
-    id: "",
-    descrizione: "",
-    alias: "",
-  });
-
+  const [page, setPage] = useState(1);
   const [showList, setShowList] = useState(false);
+  const [isFiltered, setIsFiltered] = useState(false);
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuStatusId, setMenuStatusId] = useState<number | null>(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [statusToDelete, setStatusToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
+
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuStatusId, setMenuStatusId] = useState<number | null>(null);
-  const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
-  const [isFiltered, setIsFiltered] = useState(false);
 
-  const paginatedStatuses = React.useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    return filteredStatuses.slice(start, end);
-  }, [filteredStatuses, page, rowsPerPage]);
-  const displayStatuses = (() => {
-    const source = isFiltered ? filteredStatuses : allStatuses;
-    return Array.isArray(source) ? source : [];
-  })();
+  const displayStatuses = useMemo(() => {
+    return isFiltered ? filteredStatuses : allStatuses;
+  }, [isFiltered, filteredStatuses, allStatuses]);
 
-  async function getStatusData() {
+  const getStatusData = async () => {
     setLoading(true);
     try {
       const res = await axios.get(API.deviceStatuses.list);
@@ -85,13 +74,61 @@ function DeviceStatusComponent() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     getStatusData();
   }, []);
 
-  async function handleSave() {
+  const applySearch = () => {
+    let results = [...allStatuses];
+    if (searchCriteria.id) {
+      results = results.filter((s) =>
+        s.codice.toLowerCase().includes(searchCriteria.id.trim().toLowerCase())
+      );
+    }
+    if (searchCriteria.descrizione) {
+      results = results.filter((s) =>
+        s.descrizione
+          .toLowerCase()
+          .includes(searchCriteria.descrizione.trim().toLowerCase())
+      );
+    }
+    if (searchCriteria.alias) {
+      results = results.filter((s) =>
+        s.alias
+          .toLowerCase()
+          .includes(searchCriteria.alias.trim().toLowerCase())
+      );
+    }
+    setFilteredStatuses(results);
+    setIsFiltered(true);
+    setShowList(true);
+    setPage(1);
+  };
+
+  const clearSearch = () => {
+    setSearchCriteria({ id: "", descrizione: "", alias: "" });
+    setFilteredStatuses(allStatuses);
+    setIsFiltered(false);
+    setShowList(false);
+    setPage(1);
+  };
+
+  const openAddDialogFn = () => {
+    setEditMode(false);
+    setNewStatus({ id: "", descrizione: "", alias: "" });
+    setOpenAddDialog(true);
+  };
+
+  const closeAddDialog = () => {
+    setOpenAddDialog(false);
+    setEditMode(false);
+    setSelectedId(null);
+    setNewStatus({ id: "", descrizione: "", alias: "" });
+  };
+
+  const handleSave = async () => {
     if (
       !newStatus.id?.trim() ||
       !newStatus.descrizione?.trim() ||
@@ -102,7 +139,7 @@ function DeviceStatusComponent() {
     }
 
     try {
-      if (editMode) {
+      if (editMode && selectedId) {
         await axios.put(
           API.deviceStatuses.update.replace(":id", String(selectedId)),
           {
@@ -127,47 +164,23 @@ function DeviceStatusComponent() {
       console.error("Errore salvataggio:", err);
       alert("Errore durante il salvataggio.");
     }
-  }
-
-  const closeAddDialog = () => {
-    setOpenAddDialog(false);
-    setEditMode(false);
-    setSelectedId(null);
-    setNewStatus({ id: "", descrizione: "", alias: "" });
   };
 
-  const handleDeleteClick = (id: number) => {
-    setStatusToDelete(id);
-    setDeleteModalOpen(true);
-    handleMenuClose();
+  const handleMenuClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    id: string | number
+  ) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setMenuStatusId(typeof id === "string" ? parseInt(id) : id);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!statusToDelete) return;
-
-    setDeleting(true);
-    try {
-      const url = API.deviceStatuses.delete.replace(
-        ":id",
-        String(statusToDelete)
-      );
-      await axios.delete(url);
-      await getStatusData();
-      setShowList(true);
-      setDeleteModalOpen(false);
-      setStatusToDelete(null);
-
-      setSuccessMessage("Stato eliminato con successo!");
-      setSuccessModalOpen(true);
-    } catch (error) {
-      console.error("Errore nella cancellazione:", error);
-      alert("Errore durante l'eliminazione del modello.");
-    } finally {
-      setDeleting(false);
-    }
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuStatusId(null);
   };
 
-  function handleEdit(status: DeviceStatus) {
+  const handleEdit = (status: DeviceStatus) => {
     setEditMode(true);
     setSelectedId(status.id);
     setNewStatus({
@@ -177,20 +190,12 @@ function DeviceStatusComponent() {
     });
     setOpenAddDialog(true);
     handleMenuClose();
-  }
-
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLElement>,
-    id: number
-  ) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-    setMenuStatusId(id);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuStatusId(null);
+  const handleDeleteClick = (id: number) => {
+    setStatusToDelete(id);
+    setDeleteModalOpen(true);
+    handleMenuClose();
   };
 
   const handleMenuAction = (action: "edit" | "delete") => {
@@ -200,41 +205,24 @@ function DeviceStatusComponent() {
     else if (action === "delete") handleDeleteClick(status.id);
   };
 
-  const applySearch = () => {
-    let results = [...allStatuses];
-
-    if (searchCriteria.id) {
-      results = results.filter((s) =>
-        s.codice.toLowerCase().includes(searchCriteria.id.trim().toLowerCase())
+  const handleConfirmDelete = async () => {
+    if (!statusToDelete) return;
+    setDeleting(true);
+    try {
+      await axios.delete(
+        API.deviceStatuses.delete.replace(":id", String(statusToDelete))
       );
+      await getStatusData();
+      setDeleteModalOpen(false);
+      setStatusToDelete(null);
+      setSuccessMessage("Stato eliminato con successo!");
+      setSuccessModalOpen(true);
+    } catch (error) {
+      console.error("Errore nella cancellazione:", error);
+      alert("Errore durante l'eliminazione.");
+    } finally {
+      setDeleting(false);
     }
-    if (searchCriteria.descrizione) {
-      results = results.filter((s) =>
-        s.descrizione
-          .toLowerCase()
-          .includes(searchCriteria.descrizione.trim().toLowerCase())
-      );
-    }
-    if (searchCriteria.alias) {
-      results = results.filter((s) =>
-        s.alias
-          .toLowerCase()
-          .includes(searchCriteria.alias.trim().toLowerCase())
-      );
-    }
-
-    setFilteredStatuses(results);
-    setIsFiltered(true);
-    setShowList(true);
-    setPage(1);
-  };
-
-  const clearSearch = () => {
-    setSearchCriteria({ id: "", descrizione: "", alias: "" });
-    setFilteredStatuses(allStatuses);
-    setIsFiltered(false);
-    setShowList(false);
-    setPage(1);
   };
 
   return (
@@ -242,203 +230,38 @@ function DeviceStatusComponent() {
       className="menu-gestione"
       style={{ marginLeft: 16, marginRight: 16 }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h6" className="title" sx={{ mb: 2 }}>
-          {" "}
-          Cerca Stati{" "}
-        </Typography>
-        <Button
-          variant="contained"
-          onClick={() => {
-            setEditMode(false);
-            setNewStatus({ id: "", descrizione: "", alias: "" });
-            setOpenAddDialog(true);
-          }}
-          sx={{
-            backgroundColor: "var(--blue-consob-600)",
-            "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-            borderRadius: 1,
-            textTransform: "none",
-            fontWeight: 500,
-          }}
-        >
-          Aggiungi Stato
-        </Button>
-      </Box>
+      <GenericSearchHeader
+        title="Cerca Stati"
+        onAddNew={openAddDialogFn}
+        addButtonLabel="Aggiungi Stato"
+      />
 
-      <Box sx={{ mb: 3 }}>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            flexWrap: "wrap",
-            alignItems: "flex-end",
-          }}
-        >
-          <Box sx={{ minWidth: 120 }}>
-            <Typography
-              variant="body2"
-              color="var(--neutro-800)"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              ID
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              size="small"
-              value={searchCriteria.id}
-              onChange={(e) =>
-                setSearchCriteria({ ...searchCriteria, id: e.target.value })
-              }
-              variant="outlined"
-              sx={{
-                width: "100%",
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                  backgroundColor: "var(--neutro-100)",
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-
-          <Box sx={{ flex: 1, minWidth: 180 }}>
-            <Typography
-              variant="body2"
-              color="var(--neutro-800)"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              Descrizione
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              size="small"
-              value={searchCriteria.descrizione}
-              onChange={(e) =>
-                setSearchCriteria({
-                  ...searchCriteria,
-                  descrizione: e.target.value,
-                })
-              }
-              variant="outlined"
-              sx={{
-                width: "100%",
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                  backgroundColor: "var(--neutro-100)",
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-
-          <Box sx={{ minWidth: 120 }}>
-            <Typography
-              variant="body2"
-              color="var(--neutro-800)"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              Alias
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              size="small"
-              value={searchCriteria.alias}
-              onChange={(e) =>
-                setSearchCriteria({ ...searchCriteria, alias: e.target.value })
-              }
-              variant="outlined"
-              sx={{
-                width: "100%",
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                  backgroundColor: "var(--neutro-100)",
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button
-              variant="outlined"
-              onClick={applySearch}
-              sx={{
-                height: 40,
-                backgroundColor: "var(--neutro-100)",
-                color: "var(--blue-consob-600)",
-                borderRadius: 1,
-                borderColor: "var(--blue-consob-600)",
-                textTransform: "none",
-                "&:hover": {
-                  backgroundColor: "var(--blue-consob-800)",
-                  color: "white",
-                  borderColor: "var(--blue-consob-800)",
-                },
-              }}
-            >
-              Ricerca
-            </Button>
-            <Button
-              onClick={clearSearch}
-              sx={{
-                height: 40,
-                color: "var(--blue-consob-600)",
-                borderRadius: 1,
-                textTransform: "none",
-              }}
-            >
-              Pulisci Filtri
-            </Button>
-          </Box>
-        </Box>
-      </Box>
+      <GenericSearchFilters
+        fields={[
+          {
+            label: "ID",
+            value: searchCriteria.id,
+            onChange: (v) => setSearchCriteria({ ...searchCriteria, id: v }),
+            minWidth: 120,
+          },
+          {
+            label: "Descrizione",
+            value: searchCriteria.descrizione,
+            onChange: (v) =>
+              setSearchCriteria({ ...searchCriteria, descrizione: v }),
+            minWidth: 180,
+            flex: 1,
+          },
+          {
+            label: "Alias",
+            value: searchCriteria.alias,
+            onChange: (v) => setSearchCriteria({ ...searchCriteria, alias: v }),
+            minWidth: 120,
+          },
+        ]}
+        onSearch={applySearch}
+        onClear={clearSearch}
+      />
 
       {loading && (
         <Box sx={{ textAlign: "center", py: 4 }}>
@@ -448,112 +271,26 @@ function DeviceStatusComponent() {
           </Typography>
         </Box>
       )}
-      {isFiltered && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {displayStatuses.length === 1
-            ? "1 dispositivo"
-            : `${displayStatuses.length} dispositivi`}
-        </Typography>
-      )}
-      <Collapse in={showList && !loading} timeout="auto" unmountOnExit>
-        <Box sx={{ maxWidth: 900, mx: "auto", px: 2, mb: 4 }}>
-          <Paper
-            elevation={3}
-            sx={{
-              borderRadius: "12px",
-              overflow: "hidden",
-              border: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            {paginatedStatuses.length === 0 ? (
-              <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
-                <Typography>Nessun modello trovato.</Typography>
-              </Box>
-            ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: "var(--table-head)" }}>
-                      <TableCell sx={{ fontWeight: 600, width: "25%" }}>
-                        ID
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: "45%" }}>
-                        Descrizione
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, width: "25%" }}>
-                        Alias
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: 600,
-                          textAlign: "center",
-                          width: "15%",
-                          borderLeft: "1px solid var(--neutro-200)",
-                        }}
-                      >
-                        Azioni
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
 
-                  <TableBody>
-                    {paginatedStatuses.map((s) => (
-                      <TableRow
-                        key={s.id}
-                        hover
-                        sx={{
-                          "&:hover": { backgroundColor: "action.hover" },
-                        }}
-                      >
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>
-                          {s.id}
-                        </TableCell>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>
-                          {s.descrizione}
-                        </TableCell>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>
-                          {s.alias}
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{ borderLeft: "1px solid var(--neutro-200)" }}
-                        >
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={(e) => handleMenuClick(e, s.id)}
-                            endIcon={<MoreVertIcon fontSize="small" />}
-                          >
-                            Azioni
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </Paper>
-
-          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-            <Pagination
-              count={Math.ceil(filteredStatuses.length / rowsPerPage)}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-              size="small"
-              showFirstButton
-              showLastButton
-              sx={{
-                "& .MuiPaginationItem-root": {
-                  borderRadius: "8px",
-                },
-              }}
-            />
-          </Box>
-        </Box>
-      </Collapse>
+      <GenericTable<DeviceStatus>
+        data={displayStatuses}
+        columns={[
+          { key: "codice", label: "ID", width: "25%" },
+          { key: "descrizione", label: "Descrizione", width: "45%" },
+          { key: "alias", label: "Alias", width: "25%" },
+          { key: "actions", label: "Azioni", width: "15%", align: "center" },
+        ]}
+        page={page}
+        rowsPerPage={ROWS_PER_PAGE}
+        onPageChange={setPage}
+        onMenuClick={handleMenuClick}
+        showList={showList && !loading}
+        loading={loading}
+        emptyMessage="Nessun stato trovato."
+        isFiltered={isFiltered}
+        totalCount={displayStatuses.length}
+        itemName="stato"
+      />
 
       <Menu
         anchorEl={anchorEl}
@@ -572,221 +309,44 @@ function DeviceStatusComponent() {
         </MenuItem>
       </Menu>
 
-      {/* Dialog Aggiungi/Modifica */}
-      <Dialog
+      <GenericFormDialog
         open={openAddDialog}
         onClose={closeAddDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            backgroundColor: "var(--blue-consob-600)",
-            color: "white",
-            textAlign: "center",
-          }}
-        >
-          {editMode ? "Modifica Stato" : "Aggiungi Nuovo Stato"}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 4, m: 2 }}>
-          <Box sx={{ mb: 2 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              ID *
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              fullWidth
-              size="small"
-              value={newStatus.id}
-              onChange={(e) =>
-                setNewStatus({ ...newStatus, id: e.target.value })
-              }
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-            />
-          </Box>
-          <Box sx={{ mb: 2 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              Descrizione *
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              fullWidth
-              size="small"
-              value={newStatus.descrizione}
-              onChange={(e) =>
-                setNewStatus({ ...newStatus, descrizione: e.target.value })
-              }
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-            />
-          </Box>
-          <Box>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              Alias *
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              fullWidth
-              size="small"
-              value={newStatus.alias}
-              onChange={(e) =>
-                setNewStatus({ ...newStatus, alias: e.target.value })
-              }
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={closeAddDialog}>Annulla</Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            sx={{
-              backgroundColor: "var(--blue-consob-600)",
-              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-              borderRadius: 1,
-            }}
-          >
-            Salva
-          </Button>
-        </DialogActions>
-      </Dialog>
+        title={editMode ? "Modifica Stato" : "Aggiungi Nuovo Stato"}
+        fields={[
+          {
+            label: "ID",
+            value: newStatus.id,
+            onChange: (v) => setNewStatus({ ...newStatus, id: v }),
+          },
+          {
+            label: "Descrizione",
+            value: newStatus.descrizione,
+            onChange: (v) => setNewStatus({ ...newStatus, descrizione: v }),
+          },
+          {
+            label: "Alias",
+            value: newStatus.alias,
+            onChange: (v) => setNewStatus({ ...newStatus, alias: v }),
+          },
+        ]}
+        onSave={handleSave}
+        editMode={editMode}
+      />
 
-      {/* Dialog Eliminazione */}
-      <Dialog
+      <DeleteConfirmModal
         open={deleteModalOpen}
-        onClose={() => !deleting && setDeleteModalOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Conferma Eliminazione
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Sei sicuro di voler eliminare questo stato?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Questa azione è <strong>irreversibile</strong>.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteModalOpen(false)} disabled={deleting}>
-            Annulla
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleConfirmDelete}
-            disabled={deleting}
-          >
-            {deleting ? "Eliminazione..." : "Elimina"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* MODALE DI SUCCESSO */}
-      <Dialog
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        deleting={deleting}
+        itemName="stato"
+      />
+
+      <SuccessModal
         open={successModalOpen}
         onClose={() => setSuccessModalOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogContent sx={{ textAlign: "center", py: 4 }}>
-          <Box
-            sx={{
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              bgcolor: "success.light",
-              color: "success.contrastText",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              mx: "auto",
-              mb: 2,
-            }}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-            >
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </Box>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-            Operazione completata
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {successMessage}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
-          <Button
-            onClick={() => setSuccessModalOpen(false)}
-            variant="contained"
-            sx={{
-              minWidth: 120,
-              backgroundColor: "var(--blue-consob-600)",
-              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-            }}
-          >
-            Chiudi
-          </Button>
-        </DialogActions>
-      </Dialog>
+        message={successMessage}
+      />
     </section>
   );
 }

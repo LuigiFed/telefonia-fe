@@ -1,92 +1,102 @@
 import React, { useState, useEffect } from "react";
+import { Box, CircularProgress, Typography, Menu, MenuItem } from "@mui/material";
+import axios from "axios";
 
-import {
-  Paper,
-  CircularProgress,
-  Box,
-  Typography,
-  TextField,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Menu,
-  MenuItem,
-  InputAdornment,
-  Collapse,
-  TableContainer,
-  Table,
-  TableRow,
-  TableCell,
-  TableHead,
-  TableBody,
-  Pagination,
-} from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import SearchIcon from "@mui/icons-material/Search";
+import { DeleteConfirmModal } from "../GenericsComponents/DeleteModal";
+import { GenericFormDialog } from "../GenericsComponents/GenericFormDialog";
+import { GenericSearchHeader } from "../GenericsComponents/GenericSearchHeaders";
+import { GenericSearchFilters } from "../GenericsComponents/GenericSearchFilters";
+import { GenericTable } from "../GenericsComponents/GenericTable";
+import { SuccessModal } from "../GenericsComponents/SuccessModal";
+
 import "../../theme/default/MenuGestioneComponents.css";
 import "../../theme/default/InputFields.css";
-import axios from "axios";
-import type { ServiceType } from "../../types/types";
+
 import { API } from "../../mock/mock/api/endpoints";
+import type { ServiceType } from "../../types/types";
 
 function ServiceTypeComponent() {
   const [allServices, setAllServices] = useState<ServiceType[]>([]);
   const [filteredServices, setFilteredServices] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(false);
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [newService, setNewService] = useState({ id: "", descrizione: "" });
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuServiceId, setMenuServiceId] = useState<number | null>(null);
-  const [page, setPage] = useState(1);
-  const [rowsPerPage] = useState(10);
-  const [isFiltered, setIsFiltered] = useState(false);
+
   const [searchCriteria, setSearchCriteria] = useState({
     id: "",
     descrizione: "",
   });
-  const [showList, setShowList] = useState(false);
+
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [newService, setNewService] = useState({ id: "", descrizione: "" });
+
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [menuServiceId, setMenuServiceId] = useState<number | null>(null);
+
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const paginatedServices = React.useMemo(() => {
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage;
-    return filteredServices.slice(start, end);
-  }, [filteredServices, page, rowsPerPage]);
 
-  const displayServices = (() => {
-    const source = isFiltered ? filteredServices : allServices;
-    return Array.isArray(source) ? source : [];
-  })();
+  const [isFiltered, setIsFiltered] = useState(false);
 
-  async function getServiceData() {
+  const getServiceData = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(API.serviceTypes.list);
-      const data = response.data || [];
+      const res = await axios.get(API.serviceTypes.list);
+      const data = res.data || [];
       setAllServices(data);
       setFilteredServices(data);
       setIsFiltered(false);
-    } catch (error) {
-      console.error("Errore nel fetch:", error);
-      setIsFiltered(false);
+    } catch {
+      console.error("Errore fetch");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
     getServiceData();
   }, []);
 
-  async function handleSave() {
+  const applySearch = () => {
+    let results = [...allServices];
+
+    if (searchCriteria.id) {
+      results = results.filter(s => s.id.toString().includes(searchCriteria.id.trim()));
+    }
+    if (searchCriteria.descrizione) {
+      results = results.filter(s =>
+        s.descrizione.toLowerCase().includes(searchCriteria.descrizione.trim().toLowerCase())
+      );
+    }
+
+    setFilteredServices(results);
+    setIsFiltered(true);
+  };
+
+  const clearSearch = () => {
+    setSearchCriteria({ id: "", descrizione: "" });
+    setFilteredServices(allServices);
+    setIsFiltered(false);
+  };
+
+  const openAddDialogFn = () => {
+    setEditMode(false);
+    setNewService({ id: "", descrizione: "" });
+    setOpenAddDialog(true);
+  };
+
+  const closeAddDialog = () => {
+    setOpenAddDialog(false);
+    setEditMode(false);
+    setSelectedId(null);
+    setNewService({ id: "", descrizione: "" });
+  };
+
+  const handleSave = async () => {
     if (!newService.descrizione?.trim()) {
       alert("Compila il campo descrizione.");
       return;
@@ -95,11 +105,8 @@ function ServiceTypeComponent() {
     try {
       const payload = { descrizione: newService.descrizione };
 
-      if (editMode && selectedId !== null) {
-        await axios.put(
-          API.serviceTypes.update.replace(":id", String(selectedId)),
-          payload
-        );
+      if (editMode && selectedId) {
+        await axios.put(API.serviceTypes.update.replace(":id", String(selectedId)), payload);
         setSuccessMessage("Servizio modificato con successo!");
       } else {
         await axios.post(API.serviceTypes.create, payload);
@@ -109,54 +116,26 @@ function ServiceTypeComponent() {
       await getServiceData();
       closeAddDialog();
       setSuccessModalOpen(true);
-    } catch (error) {
-      console.error("Errore salvataggio:", error);
+    } catch {
       alert("Errore durante il salvataggio.");
     }
-  }
-
-  const closeAddDialog = () => {
-    setOpenAddDialog(false);
-    setEditMode(false);
-    setSelectedId(null);
-    setNewService({ id: "", descrizione: "" });
   };
 
-  const handleDeleteClick = (id: number) => {
-    setServiceToDelete(id);
-    setDeleteModalOpen(true);
-    setDeleteError(null);
-    handleMenuClose();
+  const handleMenuClick = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    id: string | number
+  ) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setMenuServiceId(typeof id === "string" ? parseInt(id) : id);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!serviceToDelete) return;
-
-    setDeleting(true);
-    setDeleteError(null);
-    try {
-      const url = API.serviceTypes.delete.replace(
-        ":id",
-        String(serviceToDelete)
-      );
-      await axios.delete(url);
-      await getServiceData();
-      setShowList(true);
-      setDeleteModalOpen(false);
-      setServiceToDelete(null);
-
-      setSuccessMessage("Servizio eliminato con successo!");
-      setSuccessModalOpen(true);
-    } catch (error) {
-      console.error("Errore nella cancellazione:", error);
-      alert("Errore durante l'eliminazione del modello.");
-    } finally {
-      setDeleting(false);
-    }
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuServiceId(null);
   };
 
-
-  function handleEdit(service: ServiceType) {
+  const handleEdit = (service: ServiceType) => {
     setEditMode(true);
     setSelectedId(service.id);
     setNewService({
@@ -165,510 +144,160 @@ function ServiceTypeComponent() {
     });
     setOpenAddDialog(true);
     handleMenuClose();
-  }
-
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLElement>,
-    id: number
-  ) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-    setMenuServiceId(id);
   };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuServiceId(null);
+  const handleDeleteClick = (id: number) => {
+    setServiceToDelete(id);
+    setDeleteModalOpen(true);
+    handleMenuClose();
   };
 
   const handleMenuAction = (action: "edit" | "delete") => {
-    const service = allServices.find((d) => d.id === menuServiceId);
+    const service = allServices.find(s => s.id === menuServiceId);
     if (!service) return;
-    if (action === "edit") handleEdit(service);
-    else if (action === "delete") handleDeleteClick(service.id);
+    if (action === "edit") {
+      handleEdit(service);
+    } else {
+      handleDeleteClick(service.id);
+    }
   };
 
-  const applySearch = () => {
-    let results = [...allServices];
-
-    if (searchCriteria.id) {
-      results = results.filter((d) =>
-        d.id.toString().includes(searchCriteria.id.trim())
-      );
+  const handleConfirmDelete = async () => {
+    if (!serviceToDelete) return;
+    setDeleting(true);
+    try {
+      await axios.delete(API.serviceTypes.delete.replace(":id", String(serviceToDelete)));
+      await getServiceData();
+      setDeleteModalOpen(false);
+      setSuccessMessage("Servizio eliminato con successo!");
+      setSuccessModalOpen(true);
+    } catch {
+      alert("Errore durante l'eliminazione.");
+    } finally {
+      setDeleting(false);
     }
-    if (searchCriteria.descrizione) {
-      const term = searchCriteria.descrizione.trim().toLowerCase();
-      results = results.filter((d) =>
-        d.descrizione.toLowerCase().includes(term)
-      );
-    }
-    setFilteredServices(results);
-    setIsFiltered(true);
-    setShowList(true);
-    setPage(1);
-  };
-
-  const clearSearch = () => {
-    setSearchCriteria({ id: "", descrizione: "" });
-    setFilteredServices(allServices);
-    setIsFiltered(false);
-    setShowList(false);
-    setPage(1);
   };
 
   return (
-    <section
-      className="menu-gestione"
-      style={{ marginLeft: 16, marginRight: 16 }}
-    >
-      <Box
-        className="header"
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h6" className="title" sx={{ mb: 2 }}>
-          Cerca Tipi di Servizio
-        </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            onClick={() => {
-              setEditMode(false);
-              setNewService({ id: "", descrizione: "" });
-              setOpenAddDialog(true);
-            }}
-            sx={{
-              backgroundColor: "var(--blue-consob-600)",
-              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-              borderRadius: 1,
-              textTransform: "none",
-              fontWeight: 500,
-            }}
-          >
-            Aggiungi Nuovo Tipo Servizio
-          </Button>
-        </Box>
-      </Box>
+    <section className="menu-gestione" style={{ marginLeft: 16, marginRight: 16 }}>
+      {/* Header */}
+      <GenericSearchHeader
+        title="Cerca Tipi di Servizio"
+        onAddNew={openAddDialogFn}
+        addButtonLabel="Aggiungi Nuovo Tipo Servizio"
+      />
 
-      <Box sx={{ mb: 3 }}>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            flexWrap: "wrap",
-            alignItems: "flex-end",
-          }}
-        >
-          <Box sx={{ minWidth: 120 }}>
-            <Typography
-              variant="body2"
-              color="var(--neutro-800)"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              ID
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              size="small"
-              value={searchCriteria.id}
-              onChange={(e) =>
-                setSearchCriteria({ ...searchCriteria, id: e.target.value })
-              }
-              variant="outlined"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1,
-                  backgroundColor: "var(--neutro-100)",
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
+      {/* Filtri */}
+      <GenericSearchFilters
+        fields={[
+          {
+            label: "ID",
+            value: searchCriteria.id,
+            onChange: v => setSearchCriteria({ ...searchCriteria, id: v }),
+            minWidth: 120,
+          },
+          {
+            label: "Descrizione",
+            value: searchCriteria.descrizione,
+            onChange: v => setSearchCriteria({ ...searchCriteria, descrizione: v }),
+            minWidth: 200,
+            flex: 1,
+          },
+        ]}
+        onSearch={applySearch}
+        onClear={clearSearch}
+      />
 
-          <Box sx={{ flex: 1, minWidth: 200 }}>
-            <Typography
-              variant="body2"
-              color="var(--neutro-800)"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              Descrizione
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              size="small"
-              value={searchCriteria.descrizione}
-              onChange={(e) =>
-                setSearchCriteria({
-                  ...searchCriteria,
-                  descrizione: e.target.value,
-                })
-              }
-              variant="outlined"
-              fullWidth
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  backgroundColor: "var(--neutro-100)",
-                  "& fieldset": { borderColor: "divider" },
-                  "&:hover fieldset": { borderColor: "primary.main" },
-                  "&.Mui-focused fieldset": {
-                    borderColor: "primary.main",
-                    borderWidth: 1,
-                  },
-                },
-                "& .MuiInputBase-input": { py: 1 },
-              }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <Button
-              variant="outlined"
-              onClick={applySearch}
-              sx={{
-                height: 40,
-                backgroundColor: "var(--neutro-100)",
-                color: "var(--blue-consob-600)",
-                borderRadius: 1,
-                borderColor: "var(--blue-consob-600)",
-                textTransform: "none",
-                "&:hover": {
-                  backgroundColor: "var(--blue-consob-800)",
-                  color: "white",
-                  borderColor: "var(--blue-consob-800)",
-                },
-              }}
-            >
-              Ricerca
-            </Button>
-            <Button
-              onClick={clearSearch}
-              sx={{
-                height: 40,
-                color: "var(--blue-consob-600)",
-                borderRadius: 1,
-                textTransform: "none",
-              }}
-            >
-              Pulisci Filtri
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-
+      {/* Loading */}
       {loading && (
-        <Box className="loading-container">
+        <Box sx={{ textAlign: "center", py: 4 }}>
           <CircularProgress color="primary" />
-          <Typography variant="body1" color="var(--neutro-600)">
+          <Typography variant="body1" color="var(--neutro-600)" sx={{ mt: 1 }}>
             Caricamento...
           </Typography>
         </Box>
       )}
-      {isFiltered && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          {displayServices.length === 1
-            ? "1 tipo servizio"
-            : `${displayServices.length} tipi servizio`}
-        </Typography>
+
+      {/* Messaggio iniziale */}
+      {!isFiltered && !loading && (
+        <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
+          <Typography variant="body1">
+            Inserisci i criteri di ricerca e premi <strong>Ricerca</strong>
+          </Typography>
+        </Box>
       )}
 
-      <Collapse in={showList && !loading} timeout="auto" unmountOnExit>
-        <Box sx={{ maxWidth: 900, mx: "auto", px: 2, mb: 4 }}>
-          <Paper
-            elevation={3}
-            sx={{
-              borderRadius: "12px",
-              overflow: "hidden",
-              border: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            {paginatedServices.length === 0 ? (
-              <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
-                <Typography>Nessun tipo servizio trovato.</Typography>
-              </Box>
-            ) : (
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: "var(--table-head)" }}>
-                      <TableCell sx={{ width: "20%", fontWeight: "bold" }}>
-                        ID
-                      </TableCell>
-                      <TableCell sx={{ width: "65%", fontWeight: "bold" }}>
-                        Descrizione
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: "bold",
-                          textAlign: "center",
-                          width: "15%",
-                          borderLeft: "1px solid var(--neutro-200)",
-                        }}
-                      >
-                        Azioni
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
+      {/* Tabella */}
+      <GenericTable<ServiceType>
+        data={filteredServices}
+        columns={[
+          { key: "id", label: "ID", width: "20%" },
+          { key: "descrizione", label: "Descrizione", width: "65%" },
+          { key: "actions", label: "Azioni", width: "15%", align: "center" },
+        ]}
+        page={1}
+        rowsPerPage={10}
+        onPageChange={() => {}}
+        onMenuClick={handleMenuClick}
+        showList={isFiltered && !loading}
+        loading={loading}
+        emptyMessage="Nessun tipo servizio trovato."
+        isFiltered={isFiltered}
+        totalCount={filteredServices.length}
+        itemName="tipo servizio"
+      />
 
-                  <TableBody>
-                    {paginatedServices.map((s) => (
-                      <TableRow
-                        key={s.id}
-                        hover
-                        sx={{ "&:hover": { backgroundColor: "action.hover" } }}
-                      >
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>
-                          {s.id}
-                        </TableCell>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>
-                          {s.descrizione}
-                        </TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{ borderLeft: "1px solid var(--neutro-200)" }}
-                        >
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={(e) => handleMenuClick(e, s.id)}
-                            endIcon={<MoreVertIcon fontSize="small" />}
-                          >
-                            Azioni
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </Paper>
-
-          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-            <Pagination
-              count={Math.ceil(filteredServices.length / rowsPerPage)}
-              page={page}
-              onChange={(_, value) => setPage(value)}
-              color="primary"
-              size="small"
-              showFirstButton
-              showLastButton
-              sx={{ "& .MuiPaginationItem-root": { borderRadius: "8px" } }}
-            />
-          </Box>
-        </Box>
-      </Collapse>
-
+      {/* Menu Azioni */}
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
-        }}
+        PaperProps={{ sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" } }}
       >
         <MenuItem onClick={() => handleMenuAction("edit")}>Modifica</MenuItem>
-        <MenuItem
-          onClick={() => handleMenuAction("delete")}
-          sx={{ color: "error.main" }}
-        >
+        <MenuItem onClick={() => handleMenuAction("delete")} sx={{ color: "error.main" }}>
           Elimina
         </MenuItem>
       </Menu>
 
-      <Dialog
+      {/* Dialog Aggiungi/Modifica */}
+      <GenericFormDialog
         open={openAddDialog}
         onClose={closeAddDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            backgroundColor: "var(--blue-consob-600)",
-            color: "white",
-            textAlign: "center",
-          }}
-        >
-          {editMode ? "Modifica Tipo Servizio" : "Aggiungi Nuovo Tipo Servizio"}
-        </DialogTitle>
-        <DialogContent sx={{ pt: 4, m: 2 }}>
-          <Box sx={{ mb: 2 }}>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              ID *
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              fullWidth
-              value={newService.id}
-              onChange={(e) =>
-                setNewService({ ...newService, id: e.target.value })
-              }
-              disabled={editMode}
-              variant="outlined"
-              size="small"
-              helperText={editMode ? "Il ID non può essere modificato" : ""}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  "& fieldset": {
-                    borderColor: editMode ? "action.disabled" : "divider",
-                  },
-                },
-              }}
-            />
-          </Box>
-          <Box>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ mb: 0.5, display: "block" }}
-            >
-              Descrizione *
-            </Typography>
-            <TextField
-              className="textFieldInput"
-              fullWidth
-              value={newService.descrizione}
-              onChange={(e) =>
-                setNewService({ ...newService, descrizione: e.target.value })
-              }
-              variant="outlined"
-              size="small"
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={closeAddDialog}>Annulla</Button>
-          <Button
-            onClick={handleSave}
-            variant="contained"
-            sx={{
-              backgroundColor: "var(--blue-consob-600)",
-              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-            }}
-          >
-            Salva
-          </Button>
-        </DialogActions>
-      </Dialog>
+        title={editMode ? "Modifica Tipo Servizio" : "Aggiungi Nuovo Tipo Servizio"}
+        fields={[
+          {
+            label: "ID",
+            value: newService.id,
+            onChange: () => {},
+            disabled: true,
+            helperText: editMode ? "Il ID non può essere modificato" : "",
+          },
+          {
+            label: "Descrizione",
+            value: newService.descrizione,
+            onChange: v => setNewService({ ...newService, descrizione: v }),
+          },
+        ]}
+        onSave={handleSave}
+        editMode={editMode}
+      />
 
-      <Dialog
+      {/* Conferma Eliminazione */}
+      <DeleteConfirmModal
         open={deleteModalOpen}
-        onClose={() => !deleting && setDeleteModalOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h6">Conferma Eliminazione</Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body1">
-            Sei sicuro di voler eliminare questo tipo servizio?
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Questa azione è <strong>irreversibile</strong>.
-          </Typography>
-          {deleteError && (
-            <Typography variant="body2" color="error" sx={{ mt: 2 }}>
-              {deleteError}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteModalOpen(false)} disabled={deleting}>
-            Annulla
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleConfirmDelete}
-            disabled={deleting}
-          >
-            {deleting ? "Eliminazione..." : "Elimina"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-      {/* MODALE DI SUCCESSO */}
-      <Dialog
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        deleting={deleting}
+        itemName="tipo servizio"
+      />
+
+      {/* Successo */}
+      <SuccessModal
         open={successModalOpen}
         onClose={() => setSuccessModalOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogContent sx={{ textAlign: "center", py: 4 }}>
-          <Box
-            sx={{
-              width: 60,
-              height: 60,
-              borderRadius: "50%",
-              bgcolor: "success.light",
-              color: "success.contrastText",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              mx: "auto",
-              mb: 2,
-            }}
-          >
-            <svg
-              width="32"
-              height="32"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-            >
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </Box>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-            Operazione completata
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            {successMessage}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
-          <Button
-            onClick={() => setSuccessModalOpen(false)}
-            variant="contained"
-            sx={{
-              minWidth: 120,
-              backgroundColor: "var(--blue-consob-600)",
-              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-            }}
-          >
-            Chiudi
-          </Button>
-        </DialogActions>
-      </Dialog>
+        message={successMessage}
+      />
     </section>
   );
 }
