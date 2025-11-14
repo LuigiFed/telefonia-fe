@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Box, CircularProgress, Typography, Menu, MenuItem } from "@mui/material";
 import axios from "axios";
 
-import { DeleteConfirmModal } from "../GenericsComponents/DeleteModal";
-import { GenericFormDialog } from "../GenericsComponents/GenericFormDialog";
-import { GenericSearchHeader } from "../GenericsComponents/GenericSearchHeaders";
-import { GenericSearchFilters } from "../GenericsComponents/GenericSearchFilters";
-import { GenericTable } from "../GenericsComponents/GenericTable";
-import { SuccessModal } from "../GenericsComponents/SuccessModal";
+import { DeleteConfirmModal } from "../generics-components/DeleteModal";
+import { GenericFormDialog } from "../generics-components/GenericFormDialog";
+import { GenericSearchHeader } from "../generics-components/GenericSearchHeaders";
+import { GenericSearchFilters } from "../generics-components/GenericSearchFilters";
+import { GenericTable } from "../generics-components/GenericTable";
+import { SuccessModal } from "../generics-components/SuccessModal";
 
 import "../../theme/default/MenuGestioneComponents.css";
 import "../../theme/default/InputFields.css";
