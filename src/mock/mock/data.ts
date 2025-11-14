@@ -1,4 +1,4 @@
-import type { Assegnatario, Device, DeviceManagement, DeviceModel, DeviceStatus, DeviceType, MobileProvider, Reference, ServiceType } from "../../types/types";
+import type { Assegnatario, Device, DeviceManagement, DeviceModel, DeviceStatus, DeviceType, MobileProvider, ServiceType } from "../../types/types";
 
 export const devices: DeviceModel[] = [
   { id: 1, desModello: "Router AC1200" },
@@ -63,6 +63,39 @@ export const assegnatari: Assegnatario[] = [
     unitaOrganizzativa: "Ufficio Acquisti",
     note: "Supporto temporaneo",
   },
+  {
+    id: 3,
+    nome: "Anna",
+    cognome: "Verdi",
+    tipoUtente: "Dipendente",
+    unitaOrganizzativa: "IT - Sistemi Informativi",
+    note: "Responsabile tecnico",
+  },
+  {
+    id: 4,
+    nome: "Giovanni",
+    cognome: "Neri",
+    tipoUtente: "Consulente",
+    unitaOrganizzativa: "Ufficio Acquisti",
+    note: "Supporto temporaneo",
+  },
+  {
+    id: 5,
+    nome: "Laura",
+    cognome: "Gialli",
+    tipoUtente: "Dipendente", 
+    unitaOrganizzativa: "IT - Sistemi Informativi",
+    note: "Responsabile tecnico",
+  },
+  {
+    id: 6,
+    nome: "Marco",
+    cognome: "Esposito",
+    tipoUtente: "Consulente", 
+    unitaOrganizzativa: "Ufficio Acquisti",
+    note: "Supporto temporaneo",
+  },
+
 ];
 
 export const assegnazioni: Device[] = [
@@ -94,75 +127,60 @@ export const assegnazioni: Device[] = [
     note: "Riconsegnato per cambio modello",
     utenteId: 2,
   },
+  {
+    id: 3,
+    asset: "ASSET-3001",
+    tipo: "Smartphone",
+    utenza: "TIM 3451234567",
+    imei: "35209  9101234567",
+    seriale: "SN003",
+    modello: "iPhone 14",
+    stato: "AS",
+    dataInizio: "2024-03-15",
+    dataFine: "",
+    note: "Telefono principale",
+    utenteId: 3,
+  }
 ];
 
 export const deviceManagement: DeviceManagement[] = [
   {
     id: 1,
-    asset: "ASSET-3001",
-    email: "mario.rossi@example.com",
-    tipo: "Smartphone",
+    asset: "ASSET-1001",
+    imei: "352099101234567",
+    numeroSerie: "SN001",
+    idInventario: "INV-1001",
+    dispositivo: "Smartphone",
     modello: "iPhone 14",
     numeroTelefono: "3451234567",
-    sede: "Milano",
-    idInventario: "INV-001",
-    fornitore: "Apple",
-    gestore: "TIM",
+    sede: "Sede Office",
+    fornitore: "TIM",
+    gestore: "Mario Rossi",
+    servizio: "Fonia e dati",
     note: "Telefono principale",
     inizio: "2024-03-15",
-    servizio: "Fonia e dati",
+    fine: "",
+    stato: "AS",
   },
   {
     id: 2,
-    asset: "ASSET-4001",
-    email: "luca.bianchi@example.com",
-    tipo: "Tablet",
+    asset: "ASSET-2001",
+    imei: "353511102345678",
+    numeroSerie: "SN002", 
+    idInventario: "INV-2001",
+    dispositivo: "Tablet",
     modello: "iPad Air",
     numeroTelefono: "3497654321",
-    sede: "Roma",
-    idInventario: "INV-002",
-    fornitore: "Samsung",
-    gestore: "Vodafone",
+    sede: "Sede Office",
+    fornitore: "Vodafone",
+    gestore: "Luca Bianchi",
+    servizio: "Accesso Internet",
     note: "Riconsegnato per cambio modello",
     inizio: "2023-11-10",
-    servizio: "Fonia e dati",
-  },
-  {
-    id: 3,
-    asset: "ASSET-5001",
-    email: "giuseppe.verdi@example.com",
-    tipo: "Smartphone",
-    modello: "iPhone 14",
-    numeroTelefono: "3451234567",
-    sede: "Milano",
-    idInventario: "INV-003",
-    fornitore: "Apple",
-    gestore: "TIM",
-    note: "Telefono principale",
-    inizio: "2024-03-15",
-    servizio: "Fonia e dati",
-  },
-  {
-    id: 4,
-    asset: "ASSET-6001",
-    email: "giuseppe.verdi@example.com",
-    tipo: "Smartphone",
-    modello: "iPhone 14",
-    numeroTelefono: "3451234567",
-    sede: "Milano",
-    idInventario: "INV-004",
-    fornitore: "Apple",
-    gestore: "TIM",
-    note: "Telefono principale",
-    inizio: "2024-03-15",
-    servizio: "Fonia e dati",
-  },
-];
+    fine: "2024-05-22",
+    stato: "RI",  
+  }
 
-export const reference: Reference[] = [
-  { id: 1, descrizione: "iPhone 14" },
-  { id: 2, descrizione: "iPad Air" },
-  { id: 3, descrizione: "Galaxy S23" },
 ];
 
 export const serviceType: ServiceType[] = [

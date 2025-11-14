@@ -35,6 +35,7 @@ export interface Device {
   dataFine?: string | null;
   note?: string;
   utenteId: number;
+  deviceManagementId?: number;
 }
 export type DeviceForm = Omit<Device, "id" | "utenteId"> & {
   id: number | null;
@@ -52,17 +53,20 @@ export interface Assegnatario {
 export interface DeviceManagement {
   id: number ;
   asset: string;
-  email: string;
-  tipo: string;
+  imei: string;
+  numeroSerie: string;
+  idInventario: string;
+  dispositivo: string;
   modello: string;
   numeroTelefono: string;
   sede: string;
-  idInventario: string;
   fornitore: string;
   gestore: string;
+  servizio: string;
   note: string;
   inizio: string;
-  servizio: string;
+  fine: string;
+  stato: string;
 };
 export type DeviceFormManagement = Omit<DeviceManagement, "id"> & {
   id: number | null;
@@ -72,7 +76,6 @@ export type ServiceType = {
   id: number;
   descrizione: string;
 }
-export type Reference = { id: number; descrizione: string };
 
 export type Method = "get" | "post" | "put" | "delete";
 

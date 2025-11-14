@@ -30,7 +30,6 @@ import axios from "axios";
 import { API } from "../../mock/mock/api/endpoints";
 import type { DeviceType } from "../../types/types";
 
-
 function DeviceTypeComponent() {
   const [allTypes, setAllTypes] = useState<DeviceType[]>([]);
   const [filteredTypes, setFilteredTypes] = useState<DeviceType[]>([]);
@@ -50,7 +49,8 @@ function DeviceTypeComponent() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [typeToDelete, setTypeToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuTypeId, setMenuTypeId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
@@ -61,7 +61,7 @@ function DeviceTypeComponent() {
     const end = start + rowsPerPage;
     return filteredTypes.slice(start, end);
   }, [filteredTypes, page, rowsPerPage]);
-   const displayTypes = (() => {
+  const displayTypes = (() => {
     const source = isFiltered ? filteredTypes : allTypes;
     return Array.isArray(source) ? source : [];
   })();
@@ -93,12 +93,19 @@ function DeviceTypeComponent() {
 
     try {
       if (editMode) {
-        await axios.put(API.deviceTypes.update.replace(":id", String(selectedId)), newType);
+        await axios.put(
+          API.deviceTypes.update.replace(":id", String(selectedId)),
+          newType
+        );
+        setSuccessMessage("Tipo modificato con successo!");
       } else {
         await axios.post(API.deviceTypes.create, newType);
+        setSuccessMessage("Tipo aggiunto con successo!");
       }
       await getDeviceTypeData();
+
       closeAddDialog();
+      setSuccessModalOpen(true);
     } catch (error) {
       console.error("Errore salvataggio:", error);
       alert("Errore durante il salvataggio.");
@@ -127,13 +134,17 @@ function DeviceTypeComponent() {
       await axios.delete(url);
       await getDeviceTypeData();
       setShowList(true);
-    } catch (error) {
-      console.error("Errore cancellazione:", error);
-      alert("Errore durante l'eliminazione del tipo.");
-    } finally {
-      setDeleting(false);
+
       setDeleteModalOpen(false);
       setTypeToDelete(null);
+
+      setSuccessMessage("Tipo eliminato con successo!");
+      setSuccessModalOpen(true);
+    } catch (error) {
+      console.error("Errore nella cancellazione:", error);
+      alert("Errore durante l'eliminazione del modello.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -249,7 +260,8 @@ function DeviceTypeComponent() {
             >
               ID
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               size="small"
               value={searchCriteria.ID}
               onChange={(e) =>
@@ -288,7 +300,8 @@ function DeviceTypeComponent() {
             >
               Descrizione
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               size="small"
               value={searchCriteria.descrizione}
               onChange={(e) =>
@@ -366,13 +379,13 @@ function DeviceTypeComponent() {
           </Typography>
         </Box>
       )}
-       {isFiltered && (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {displayTypes.length === 1
-                  ? "1 dispositivo"
-                  : `${displayTypes.length} dispositivi`}
-              </Typography>
-            )}
+      {isFiltered && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {displayTypes.length === 1
+            ? "1 dispositivo"
+            : `${displayTypes.length} dispositivi`}
+        </Typography>
+      )}
 
       <Collapse in={showList && !loading} timeout="auto" unmountOnExit>
         <Box sx={{ maxWidth: 900, mx: "auto", px: 2, mb: 4 }}>
@@ -511,7 +524,8 @@ function DeviceTypeComponent() {
             >
               ID *
             </Typography>
-            <TextField  className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               fullWidth
               size="small"
               value={newType.ID}
@@ -539,7 +553,8 @@ function DeviceTypeComponent() {
             >
               Descrizione *
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               fullWidth
               size="small"
               value={newType.descrizione}
@@ -609,6 +624,60 @@ function DeviceTypeComponent() {
             disabled={deleting}
           >
             {deleting ? "Eliminazione..." : "Elimina"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* MODALE DI SUCCESSO */}
+      <Dialog
+        open={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogContent sx={{ textAlign: "center", py: 4 }}>
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              bgcolor: "success.light",
+              color: "success.contrastText",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </Box>
+          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+            Operazione completata
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {successMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button
+            onClick={() => setSuccessModalOpen(false)}
+            variant="contained"
+            sx={{
+              minWidth: 120,
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+            }}
+          >
+            Chiudi
           </Button>
         </DialogActions>
       </Dialog>

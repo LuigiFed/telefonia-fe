@@ -30,7 +30,6 @@ import axios from "axios";
 import type { DeviceStatus } from "../../types/types";
 import { API } from "../../mock/mock/api/endpoints";
 
-
 function DeviceStatusComponent() {
   const [allStatuses, setAllStatuses] = useState<DeviceStatus[]>([]);
   const [filteredStatuses, setFilteredStatuses] = useState<DeviceStatus[]>([]);
@@ -55,7 +54,8 @@ function DeviceStatusComponent() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [statusToDelete, setStatusToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [menuStatusId, setMenuStatusId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
@@ -67,7 +67,7 @@ function DeviceStatusComponent() {
     const end = start + rowsPerPage;
     return filteredStatuses.slice(start, end);
   }, [filteredStatuses, page, rowsPerPage]);
-    const displayStatuses = (() => {
+  const displayStatuses = (() => {
     const source = isFiltered ? filteredStatuses : allStatuses;
     return Array.isArray(source) ? source : [];
   })();
@@ -101,24 +101,28 @@ function DeviceStatusComponent() {
       return;
     }
 
-   try {
-  if (editMode) {
-       await axios.put(API.deviceStatuses.update.replace(":id", String(selectedId)),
-      {
-        codice: newStatus.id,
-        descrizione: newStatus.descrizione,
-        alias: newStatus.alias,
+    try {
+      if (editMode) {
+        await axios.put(
+          API.deviceStatuses.update.replace(":id", String(selectedId)),
+          {
+            codice: newStatus.id,
+            descrizione: newStatus.descrizione,
+            alias: newStatus.alias,
+          }
+        );
+        setSuccessMessage("Stato modificato con successo!");
+      } else {
+        await axios.post(API.deviceStatuses.create, {
+          codice: newStatus.id,
+          descrizione: newStatus.descrizione,
+          alias: newStatus.alias,
+        });
+        setSuccessMessage("Stato aggiunto con successo!");
       }
-    );
-  } else {
-    await axios.post(API.deviceStatuses.create, {
-      codice: newStatus.id,
-      descrizione: newStatus.descrizione,
-      alias: newStatus.alias,
-    });
-  }
       await getStatusData();
       closeAddDialog();
+      setSuccessModalOpen(true);
     } catch (err) {
       console.error("Errore salvataggio:", err);
       alert("Errore durante il salvataggio.");
@@ -143,17 +147,23 @@ function DeviceStatusComponent() {
 
     setDeleting(true);
     try {
-       const url = API.deviceStatuses.delete.replace(":id", String(statusToDelete));
-    await axios.delete(url);
+      const url = API.deviceStatuses.delete.replace(
+        ":id",
+        String(statusToDelete)
+      );
+      await axios.delete(url);
       await getStatusData();
       setShowList(true);
-    } catch (err) {
-      console.error("Errore cancellazione:", err);
-      alert("Errore durante l'eliminazione dello stato.");
-    } finally {
-      setDeleting(false);
       setDeleteModalOpen(false);
       setStatusToDelete(null);
+
+      setSuccessMessage("Stato eliminato con successo!");
+      setSuccessModalOpen(true);
+    } catch (error) {
+      console.error("Errore nella cancellazione:", error);
+      alert("Errore durante l'eliminazione del modello.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -280,7 +290,8 @@ function DeviceStatusComponent() {
             >
               ID
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               size="small"
               value={searchCriteria.id}
               onChange={(e) =>
@@ -319,7 +330,8 @@ function DeviceStatusComponent() {
             >
               Descrizione
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               size="small"
               value={searchCriteria.descrizione}
               onChange={(e) =>
@@ -361,7 +373,8 @@ function DeviceStatusComponent() {
             >
               Alias
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               size="small"
               value={searchCriteria.alias}
               onChange={(e) =>
@@ -435,13 +448,13 @@ function DeviceStatusComponent() {
           </Typography>
         </Box>
       )}
-        {isFiltered && (
-             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-               {displayStatuses.length === 1
-                 ? "1 dispositivo"
-                 : `${displayStatuses.length} dispositivi`}
-             </Typography>
-           )}
+      {isFiltered && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {displayStatuses.length === 1
+            ? "1 dispositivo"
+            : `${displayStatuses.length} dispositivi`}
+        </Typography>
+      )}
       <Collapse in={showList && !loading} timeout="auto" unmountOnExit>
         <Box sx={{ maxWidth: 900, mx: "auto", px: 2, mb: 4 }}>
           <Paper
@@ -499,7 +512,7 @@ function DeviceStatusComponent() {
                         <TableCell sx={{ color: "var(--neutro-600)" }}>
                           {s.descrizione}
                         </TableCell>
-                          <TableCell sx={{ color: "var(--neutro-600)" }}>
+                        <TableCell sx={{ color: "var(--neutro-600)" }}>
                           {s.alias}
                         </TableCell>
                         <TableCell
@@ -584,7 +597,8 @@ function DeviceStatusComponent() {
             >
               ID *
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               fullWidth
               size="small"
               value={newStatus.id}
@@ -614,7 +628,8 @@ function DeviceStatusComponent() {
             >
               Descrizione *
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               fullWidth
               size="small"
               value={newStatus.descrizione}
@@ -644,7 +659,8 @@ function DeviceStatusComponent() {
             >
               Alias *
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               fullWidth
               size="small"
               value={newStatus.alias}
@@ -714,6 +730,60 @@ function DeviceStatusComponent() {
             disabled={deleting}
           >
             {deleting ? "Eliminazione..." : "Elimina"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* MODALE DI SUCCESSO */}
+      <Dialog
+        open={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogContent sx={{ textAlign: "center", py: 4 }}>
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              bgcolor: "success.light",
+              color: "success.contrastText",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </Box>
+          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+            Operazione completata
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {successMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button
+            onClick={() => setSuccessModalOpen(false)}
+            variant="contained"
+            sx={{
+              minWidth: 120,
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+            }}
+          >
+            Chiudi
           </Button>
         </DialogActions>
       </Dialog>

@@ -2,7 +2,6 @@ import type { RequestHandler } from "msw";
 import { AssignmentsService } from "./AssignmentsService";
 import { DeviceManagementService } from "./DeviceManagementService";
 import { MobileProvidersService } from "./MobileProvidersService.ts";
-import { ReferenceService } from "./ReferenceService.ts";
 import { DeviceStatusesService } from "./DeviceStatusService.ts";
 import { DeviceTypesService } from "./DeviceTypeService.ts";
 import { ModelsService } from "./ModelsService.ts";
@@ -19,7 +18,6 @@ const services = [
   new AssignmentsService(),
   new AssigneesService(),
   new DeviceManagementService(),
-  new ReferenceService(),
   new ServiceTypeService(),
 ];
 

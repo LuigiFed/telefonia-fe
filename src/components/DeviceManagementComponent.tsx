@@ -1,789 +1,855 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
-  Box,
-  Button,
-  TextField,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  IconButton,
-  Menu,
-  MenuItem,
+  Paper,
   CircularProgress,
-  Grid,
+  Box,
+  Typography,
+  TextField,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Fab,
-  Paper,
+  Button,
+  Menu,
+  MenuItem,
+  InputAdornment,
+  Collapse,
+  TableContainer,
+  Table,
+  TableRow,
+  TableCell,
+  TableHead,
+  TableBody,
+  Pagination,
+  Select,
+  FormControl
 } from "@mui/material";
-import { MoreVert } from "@mui/icons-material";
-import AddIcon from "@mui/icons-material/Add";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SearchIcon from "@mui/icons-material/Search";
-import axios, { AxiosError } from "axios";
+import axios from "axios";
 import type {
-  DeviceFormManagement,
   DeviceManagement,
+  DeviceFormManagement,
   DeviceModel,
-  Reference,
+  DeviceType,
+  MobileProvider,
+  DeviceStatus,
 } from "../types/types";
 import { API } from "../mock/mock/api/endpoints";
 
 function DeviceManagementComponent() {
-  const [devices, setDevices] = useState<DeviceManagement[]>([]);
-  const [filteredDevices, setFilteredDevices] = useState<DeviceManagement[]>(
-    []
-  );
-  const [isFiltered, setIsFiltered] = useState(false);
-
-  const [newElement, setNew] = useState<DeviceFormManagement>({
-    id:  null, 
+  const [allDevices, setAllDevices] = useState<DeviceManagement[]>([]);
+  const [filteredDevices, setFilteredDevices] = useState<DeviceManagement[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [newDevice, setNewDevice] = useState<DeviceFormManagement>({
+    id: null,
     asset: "",
-    email: "",
-    tipo: "",
+    imei: "",
+    numeroSerie: "",
+    idInventario: "",
+    dispositivo: "",
     modello: "",
     numeroTelefono: "",
     sede: "",
-    idInventario: "",
     fornitore: "",
     gestore: "",
+    servizio: "",
     note: "",
     inizio: "",
-    servizio: "",
+    fine: "",
+    stato: "",
   });
 
-  const [deviceTypes, setDeviceTypes] = useState<Reference[]>([]);
-  const [deviceModels, setDeviceModels] = useState<Reference[]>([]);
-  const [mobileProviders, setMobileProviders] = useState<Reference[]>([]);
-  const [deviceStatuses, setDeviceStatuses] = useState<Reference[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Riferimenti
+  const [deviceTypes, setDeviceTypes] = useState<DeviceType[]>([]);
+  const [deviceModels, setDeviceModels] = useState<DeviceModel[]>([]);
+  const [mobileProviders, setMobileProviders] = useState<MobileProvider[]>([]);
+  const [deviceStatuses, setDeviceStatuses] = useState<DeviceStatus[]>([]);
+
+  // Menu e azioni
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [menuDeviceId, setMenuDeviceId] = useState<number | null>(null);
 
-  const [openForm, setOpenForm] = useState(false);
-  const [openSearch, setOpenSearch] = useState(false);
-  const [searchCriteria, setSearchCriteria] = useState<
-    Partial<DeviceManagement>
-  >({});
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState<DeviceManagement | null>(
-    null
-  );
+  // Paginazione
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 10;
 
+  // Filtri
+  const [isFiltered, setIsFiltered] = useState(false);
+  const [searchCriteria, setSearchCriteria] = useState<Partial<DeviceManagement>>({});
+  const [showList, setShowList] = useState(false);
+
+  // Eliminazione
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<DeviceManagement | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState<DeviceManagement | null>(
-    null
-  );
 
+  // Modal di successo
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  useEffect(() => {
-    async function handleReference() {
-      try {
-        const [types, models, providers, statuses] = await Promise.all([
-          axios.get<Reference[]>(API.deviceTypes.list),
-          axios.get<DeviceModel[]>(API.deviceModels.list),
-          axios.get<Reference[]>(API.mobileProviders.list),
-          axios.get<Reference[]>(API.deviceStatuses.list),
-        ]);
+  // Paginazione memoizzata
+  const paginatedDevices = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    return filteredDevices.slice(start, end);
+  }, [filteredDevices, page, rowsPerPage]);
 
-        setDeviceTypes(types.data);
-        const mappedModels: Reference[] = models.data.map((m) => ({
-          id: m.id,
-          descrizione: m.desModello,
-        }));
-        setDeviceModels(mappedModels);
-        setMobileProviders(providers.data);
-        setDeviceStatuses(statuses.data);
-      } catch (err) {
-        console.error("Errore caricamento dati di riferimento:", err);
-      }
-    }
-    handleReference();
-  }, []);
+  const displayDevices = useMemo(() => {
+    const source = isFiltered ? filteredDevices : allDevices;
+    return Array.isArray(source) ? source : [];
+  }, [isFiltered, filteredDevices, allDevices]);
 
-  useEffect(() => {
-    console.log("useEffect: avvio handleLoadDevice");
-    handleLoadDevice();
-  }, []);
-
-  async function handleLoadDevice() {
-  try {
-    console.log("INIZIO CARICAMENTO DISPOSITIVI...");
+  // Caricamento dati
+  async function getDeviceData() {
     setLoading(true);
-    const res = await axios.get(API.deviceManagement.list);
-    console.log("RISPOSTA API:", res.data);
-    const data = Array.isArray(res.data) ? res.data : [];
-    console.log("DATI NORMALIZZATI:", data);
-    setDevices(data);
-    setFilteredDevices(data);
-    setIsFiltered(false);
-  } catch (err) {
-    console.error("Errore caricamento dispositivi:", err);
-    setDevices([]);
-    setFilteredDevices([]);
-    setIsFiltered(false);
-  } finally {
-    setLoading(false);
-    console.log("FINE CARICAMENTO");
-  }
-}
+    try {
+      const [devicesRes, typesRes, modelsRes, providersRes, statusesRes] = await Promise.all([
+        axios.get(API.deviceManagement.list),
+        axios.get<DeviceType[]>(API.deviceTypes.list),
+        axios.get<DeviceModel[]>(API.deviceModels.list),
+        axios.get<MobileProvider[]>(API.mobileProviders.list),
+        axios.get<DeviceStatus[]>(API.deviceStatuses.list),
+      ]);
 
-  const handleAdd = () => {
-    resetForm();
-    setOpenForm(true);
-  };
+      const devices = Array.isArray(devicesRes.data) ? devicesRes.data : [];
+      setAllDevices(devices);
+      setFilteredDevices(devices);
+      setIsFiltered(false);
 
-  const handleEdit = () => {
-    if (!selectedId) return;
-    const device = devices.find((d) => d.id === selectedId);
-    if (!device) {
-      alert("Dispositivo non trovato.");
-      handleCloseMenu();
-      return;
+      setDeviceTypes(typesRes.data);
+      setDeviceModels(modelsRes.data);
+      setMobileProviders(providersRes.data);
+      setDeviceStatuses(statusesRes.data);
+    } catch (error) {
+      console.error("Errore nel caricamento dati:", error);
+      setAllDevices([]);
+      setFilteredDevices([]);
+      setIsFiltered(false);
+    } finally {
+      setLoading(false);
     }
-    setNew({ ...device });
-    setOpenForm(true);
-    handleCloseMenu();
-  };
+  }
 
+  useEffect(() => {
+    getDeviceData();
+  }, []);
+
+  // Salvataggio
  async function handleSave() {
-  if (!newElement.asset || !newElement.tipo) {
-    alert("Compila i campi obbligatori!");
+  if (!newDevice.asset?.trim() || !newDevice.dispositivo?.trim()) {
+    alert("Compila i campi obbligatori: Asset e Dispositivo.");
     return;
   }
 
   try {
-    setLoading(true);
+    const payload = { ...newDevice };
 
-    if (newElement.id) {
-      // Update
-        await axios.put(API.deviceManagement.update.replace(":id", String(selectedId)),
-        newElement
-      );
+    if (editMode && selectedId !== null) {
+      await axios.put(API.deviceManagement.update.replace(":id", String(selectedId)), payload);
+      setSuccessMessage("Dispositivo modificato con successo!");
     } else {
-      // Create
-      await axios.post(API.deviceManagement.create, newElement);
+      await axios.post(API.deviceManagement.create, payload);
+      setSuccessMessage("Dispositivo aggiunto con successo!");
     }
 
-    await handleLoadDevice();
-    resetForm();
-    setOpenForm(false);
-    alert("Dispositivo salvato con successo!");
-  } catch (err) {
-    console.error("Errore salvataggio:", err);
-    alert("Errore durante il salvataggio");
-  } finally {
-    setLoading(false);
+    await getDeviceData();
+    closeAddDialog();
+
+    
+    setSuccessModalOpen(true);
+
+  } catch (error) {
+    console.error("Errore salvataggio:", error);
+    alert("Errore durante il salvataggio del dispositivo.");
   }
 }
 
-
-  function resetForm() {
-    setNew({
+  const closeAddDialog = () => {
+    setOpenAddDialog(false);
+    setEditMode(false);
+    setSelectedId(null);
+    setNewDevice({
       id: null,
       asset: "",
-      email: "",
-      tipo: "",
+      imei: "",
+      numeroSerie: "",
+      idInventario: "",
+      dispositivo: "",
       modello: "",
       numeroTelefono: "",
       sede: "",
-      idInventario: "",
       fornitore: "",
       gestore: "",
+      servizio: "",
       note: "",
       inizio: "",
-      servizio: "",
+      fine: "",
+      stato: "",
     });
-  }
+  };
 
-  function handleOpenMenu(e: React.MouseEvent<HTMLButtonElement>, id: number) {
-    setAnchorEl(e.currentTarget);
-    setSelectedId(id);
-  }
+  // Azioni menu
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, id: number) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setMenuDeviceId(id);
+  };
 
-  function handleCloseMenu() {
+  const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedId(null);
-  }
+    setMenuDeviceId(null);
+  };
 
-  const handleOpenDeleteModal = () => {
-    if (!selectedId) return;
-    const device = devices.find((d) => d.id === selectedId);
-    if (!device) {
-      alert("Dispositivo non trovato.");
-      handleCloseMenu();
-      return;
-    }
+  const handleEdit = () => {
+    const device = allDevices.find((d) => d.id === menuDeviceId);
+    if (!device) return;
+    setEditMode(true);
+    setSelectedId(device.id);
+    setNewDevice({ ...device });
+    setOpenAddDialog(true);
+    handleMenuClose();
+  };
+
+  const handleDeleteClick = () => {
+    const device = allDevices.find((d) => d.id === menuDeviceId);
+    if (!device) return;
     setDeviceToDelete(device);
     setDeleteModalOpen(true);
-    handleCloseMenu();
+    handleMenuClose();
   };
 
-  const handleConfirmDelete = async () => {
-    if (!deviceToDelete) return;
-    setDeleting(true);
-    try {
-       const url = API.deviceManagement.delete.replace(":id", String(deviceToDelete.id));
-      await axios.delete(url);
-      const id = deviceToDelete.id;
+const handleConfirmDelete = async () => {
+  if (!deviceToDelete) return;
+  setDeleting(true);
+  try {
+    const url = API.deviceManagement.delete.replace(":id", String(deviceToDelete.id));
+    await axios.delete(url);
+    
+    await getDeviceData();
+    setShowList(true);
 
-      setDevices((prev) => prev.filter((d) => d.id !== id));
-      if (isFiltered) {
-        setFilteredDevices((prev) => prev.filter((d) => d.id !== id));
-      }
 
-      alert(`Dispositivo "${deviceToDelete.asset}" eliminato con successo!`);
-    } catch (err: unknown) {
-      const axiosErr = err as AxiosError<{ message?: string }>;
-      let errorMsg = "Errore durante l'eliminazione.";
-      if (axiosErr.response?.data?.message)
-        errorMsg += `\nDettaglio: ${axiosErr.response.data.message}`;
-      else if (axiosErr.response?.status === 404)
-        errorMsg += "\nDispositivo non trovato sul server.";
-      alert(errorMsg);
-      await handleLoadDevice();
-    } finally {
-      setDeleting(false);
-      setDeleteModalOpen(false);
-      setDeviceToDelete(null);
-    }
-  };
+    setDeleteModalOpen(false);
+    setDeviceToDelete(null);
 
-const handleApplySearch = () => {
-  console.log("APPLY SEARCH - criteria:", searchCriteria);
-  console.log("APPLY SEARCH - base devices:", devices.length);
 
-  const base = displayDevices.length > 0 ? displayDevices : devices;
-  let temp: DeviceManagement[] = [...base];
+    setSuccessMessage("Dispositivo eliminato con successo!");
+    setSuccessModalOpen(true);
 
-  const sc = searchCriteria;
-
-  if ((sc.asset ?? "").trim()) {
-    const val = (sc.asset ?? "").trim().toLowerCase();
-    temp = temp.filter(d => d.asset.toLowerCase().includes(val));
+  } catch (error) {
+    console.error("Errore eliminazione:", error);
+    alert("Errore durante l'eliminazione del dispositivo.");
+  } finally {
+    setDeleting(false);
   }
-  if ((sc.email ?? "").trim()) {
-    const val = (sc.email ?? "").trim().toLowerCase();
-    temp = temp.filter(d => d.email?.toLowerCase().includes(val));
-  }
-  if ((sc.numeroTelefono ?? "").trim()) {
-    temp = temp.filter(d => d.numeroTelefono?.includes((sc.numeroTelefono ?? "").trim()));
-  }
-  if ((sc.sede ?? "").trim()) {
-    const val = (sc.sede ?? "").trim().toLowerCase();
-    temp = temp.filter(d => d.sede?.toLowerCase().includes(val));
-  }
-  if ((sc.idInventario ?? "").trim()) {
-    const val = (sc.idInventario ?? "").trim().toLowerCase();
-    temp = temp.filter(d => d.idInventario?.toLowerCase().includes(val));
-  }
-  if ((sc.fornitore ?? "").trim()) {
-    const val = (sc.fornitore ?? "").trim().toLowerCase();
-    temp = temp.filter(d => d.fornitore?.toLowerCase().includes(val));
-  }
-  if ((sc.note ?? "").trim()) {
-    const val = (sc.note ?? "").trim().toLowerCase();
-    temp = temp.filter(d => (d.note || "").toLowerCase().includes(val));
-  }
-  if (sc.inizio) temp = temp.filter(d => d.inizio === sc.inizio);
-  if (sc.tipo) temp = temp.filter(d => d.tipo === sc.tipo);
-  if (sc.modello) temp = temp.filter(d => d.modello === sc.modello);
-  if (sc.gestore) temp = temp.filter(d => d.gestore === sc.gestore);
-  if (sc.servizio) temp = temp.filter(d => d.servizio === sc.servizio);
-
-  console.log("APPLY SEARCH - result:", temp.length);
-
-  setFilteredDevices(temp);
-  setIsFiltered(temp.length < devices.length);
-  setOpenSearch(false);
 };
 
-  const handleClearFilters = () => {
+  // Ricerca
+  const applySearch = () => {
+    let results = [...allDevices];
+    const s = searchCriteria;
+
+    if (s.asset?.trim()) results = results.filter((d) => d.asset.toLowerCase().includes(s.asset!.trim().toLowerCase()));
+    if (s.imei?.trim()) results = results.filter((d) => d.imei?.toLowerCase().includes(s.imei!.trim().toLowerCase()));
+    if (s.numeroSerie?.trim()) results = results.filter((d) => d.numeroSerie?.toLowerCase().includes(s.numeroSerie!.trim().toLowerCase()));
+    if (s.idInventario?.trim()) results = results.filter((d) => d.idInventario?.toLowerCase().includes(s.idInventario!.trim().toLowerCase()));
+    if (s.dispositivo?.trim()) results = results.filter((d) => d.dispositivo.toLowerCase().includes(s.dispositivo!.trim().toLowerCase()));
+    if (s.modello?.trim()) results = results.filter((d) => d.modello.toLowerCase().includes(s.modello!.trim().toLowerCase()));
+    if (s.numeroTelefono?.trim()) results = results.filter((d) => d.numeroTelefono?.includes(s.numeroTelefono!.trim()));
+    if (s.sede?.trim()) results = results.filter((d) => d.sede?.toLowerCase().includes(s.sede!.trim().toLowerCase()));
+    if (s.fornitore?.trim()) results = results.filter((d) => d.fornitore?.toLowerCase().includes(s.fornitore!.trim().toLowerCase()));
+    if (s.gestore?.trim()) results = results.filter((d) => d.gestore.toLowerCase().includes(s.gestore!.trim().toLowerCase()));
+    if (s.servizio?.trim()) results = results.filter((d) => d.servizio.toLowerCase().includes(s.servizio!.trim().toLowerCase()));
+    if (s.note?.trim()) results = results.filter((d) => (d.note || "").toLowerCase().includes(s.note!.trim().toLowerCase()));
+    if (s.inizio) results = results.filter((d) => d.inizio === s.inizio);
+    if (s.fine) results = results.filter((d) => d.fine === s.fine);
+    if (s.stato) results = results.filter((d) => d.stato === s.stato);
+
+    setFilteredDevices(results);
+    setIsFiltered(true);
+    setShowList(true);
+    setPage(1);
+  };
+
+  const clearSearch = () => {
     setSearchCriteria({});
-    setFilteredDevices(devices);
+    setFilteredDevices(allDevices);
     setIsFiltered(false);
+    setShowList(false);
+    setPage(1);
   };
-
-  const handleRowClick = (device: DeviceManagement) => {
-    setSelectedDevice(device);
-    setDetailOpen(true);
-  };
-
-  const handleCloseDetail = () => {
-    setDetailOpen(false);
-    setSelectedDevice(null);
-  };
-
-  const displayDevices = (() => {
-    const source = isFiltered ? filteredDevices : devices;
-    return Array.isArray(source) ? source : [];
-  })();
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1400, mx: "auto", position: "relative" }}>
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 3 }}>
-        Gestione Dispositivi Telefonia Mobile
-      </Typography>
-
-      <Box sx={{ p: 3, overflow: "hidden" }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 2,
-          }}
-        >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Elenco Dispositivi
-          </Typography>
-          <Box>
-            <Button
-              startIcon={<SearchIcon />}
-              onClick={() => {
-                setSearchCriteria({}); 
-                setOpenSearch(true);
-              }}
-              sx={{
-                backgroundColor: "var(--blue-consob-600)",
-                color: "white",
-                "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-              }}
-            >
-              Ricerca
-            </Button>
-            {isFiltered && (
-              <Button sx={{ ml: 1 }} onClick={handleClearFilters}>
-                Pulisci
-              </Button>
-            )}
-          </Box>
+    <section className="menu-gestione" style={{ marginLeft: 16, marginRight: 16 }}>
+      <Box
+        className="header"
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mb: 3,
+        }}
+      >
+        <Typography variant="h6" className="title" sx={{ mb: 2 }}>
+          Gestione Dispositivi Telefonia Mobile
+        </Typography>
+        <Box>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setEditMode(false);
+              closeAddDialog();
+              setOpenAddDialog(true);
+            }}
+            sx={{
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+              borderRadius: 1,
+              textTransform: "none",
+              fontWeight: 500,
+            }}
+          >
+            Aggiungi Nuovo Dispositivo
+          </Button>
         </Box>
+      </Box>
 
+      {/* Filtri di ricerca */}
+      <Box sx={{ mb: 4 }}>
+       <Box
+  sx={{
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 2,
+    alignItems: "flex-end",
+    mb: 3,
+  }}
+>
+  {/* Asset */}
+  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
+      Asset
+    </Typography>
+    <TextField
+      size="small"
+      fullWidth
+      value={searchCriteria.asset || ""}
+      onChange={(e) => setSearchCriteria({ ...searchCriteria, asset: e.target.value })}
+      variant="outlined"
+      sx={{
+        "& .MuiOutlinedInput-root": {
+          borderRadius: 1,
+          backgroundColor: "var(--neutro-100)",
+          "& fieldset": { borderColor: "divider" },
+          "&:hover fieldset": { borderColor: "primary.main" },
+          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
+        },
+        "& .MuiInputBase-input": { py: 1 },
+      }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon fontSize="small" />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Box>
+
+  {/* IMEI */}
+  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
+      IMEI
+    </Typography>
+    <TextField
+      size="small"
+      fullWidth
+      value={searchCriteria.imei || ""}
+      onChange={(e) => setSearchCriteria({ ...searchCriteria, imei: e.target.value })}
+      variant="outlined"
+      sx={{
+        "& .MuiOutlinedInput-root": {
+          backgroundColor: "var(--neutro-100)",
+          "& fieldset": { borderColor: "divider" },
+          "&:hover fieldset": { borderColor: "primary.main" },
+          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
+        },
+        "& .MuiInputBase-input": { py: 1 },
+      }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon fontSize="small" />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Box>
+
+  {/* Dispositivo */}
+  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
+      Dispositivo
+    </Typography>
+    <TextField
+      size="small"
+      fullWidth
+      value={searchCriteria.dispositivo || ""}
+      onChange={(e) => setSearchCriteria({ ...searchCriteria, dispositivo: e.target.value })}
+      variant="outlined"
+      sx={{
+        "& .MuiOutlinedInput-root": {
+          backgroundColor: "var(--neutro-100)",
+          "& fieldset": { borderColor: "divider" },
+          "&:hover fieldset": { borderColor: "primary.main" },
+          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
+        },
+        "& .MuiInputBase-input": { py: 1 },
+      }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon fontSize="small" />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Box>
+
+  {/* Modello */}
+  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
+      Modello
+    </Typography>
+    <TextField
+      size="small"
+      fullWidth
+      value={searchCriteria.modello || ""}
+      onChange={(e) => setSearchCriteria({ ...searchCriteria, modello: e.target.value })}
+      variant="outlined"
+      sx={{
+        "& .MuiOutlinedInput-root": {
+          backgroundColor: "var(--neutro-100)",
+          "& fieldset": { borderColor: "divider" },
+          "&:hover fieldset": { borderColor: "primary.main" },
+          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
+        },
+        "& .MuiInputBase-input": { py: 1 },
+      }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon fontSize="small" />
+          </InputAdornment>
+        ),
+      }}
+    />
+  </Box>
+
+  {/* Pulsanti */}
+  <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+    <Button
+      variant="outlined"
+      onClick={applySearch}
+      sx={{
+        height: 40,
+        minWidth: 100,
+        backgroundColor: "var(--neutro-100)",
+        color: "var(--blue-consob-600)",
+        borderRadius: 1,
+        borderColor: "var(--blue-consob-600)",
+        textTransform: "none",
+        fontWeight: 500,
+        "&:hover": {
+          backgroundColor: "var(--blue-consob-800)",
+          color: "white",
+          borderColor: "var(--blue-consob-800)",
+        },
+      }}
+    >
+      Ricerca
+    </Button>
+    <Button
+      onClick={clearSearch}
+      sx={{
+        height: 40,
+        minWidth: 100,
+        color: "var(--blue-consob-600)",
+        borderRadius: 1,
+        textTransform: "none",
+        fontWeight: 500,
+        "&:hover": {
+          backgroundColor: "var(--neutro-200)",
+        },
+      }}
+    >
+      Pulisci
+    </Button>
+  </Box>
+</Box>
+      </Box>
+
+      {loading && (
+        <Box className="loading-container" sx={{ textAlign: "center", py: 3 }}>
+          <CircularProgress color="primary" />
+          <Typography variant="body1" color="var(--neutro-600)" sx={{ mt: 1 }}>
+            Caricamento...
+          </Typography>
+        </Box>
+      )}
+
+      {isFiltered && (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {displayDevices.length === 1
             ? "1 dispositivo"
             : `${displayDevices.length} dispositivi`}
         </Typography>
+      )}
 
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
-            <CircularProgress />
-          </Box>
-        ) : displayDevices.length === 0 ? (
-          <Typography sx={{ textAlign: "center", py: 2 }}>
-            {isFiltered
-              ? "Nessun dispositivo corrisponde ai criteri di ricerca."
-              : "Nessun dispositivo trovato."}
-          </Typography>
-        ) : (
-           <Paper
-               elevation={3}
+      <Collapse in={showList && !loading} timeout="auto" unmountOnExit>
+        <Box sx={{ maxWidth: 1400, mx: "auto", px: 2, mb: 4 }}>
+          <Paper
+            elevation={3}
             sx={{
               borderRadius: "12px",
               overflow: "hidden",
               border: "1px solid",
               borderColor: "divider",
             }}
-            >
-          <TableContainer sx={{ maxHeight: "calc(100vh - 280px)" }}>
-            <Table size="small">
-              <TableHead>
-                <TableRow  sx={{ "& .MuiTableCell-root": { width: "15%" } }}>
-                  <TableCell>
-                    <strong>Asset</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Tipo</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Modello</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Telefono</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>Gestore</strong>
-                  </TableCell>
-                  <TableCell align="center"   sx={{
-                          fontWeight: 600,
-                          textAlign: "center",
-                          borderLeft: "1px solid var(--neutro-200)",
-                        }}>
-                    <strong>Azioni</strong>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody    sx={{ "& .MuiTableCell-root": { fontWeight: "normal" } }}>
-                {displayDevices.map((d) => (
-                  <TableRow
-                    key={d.id!}
-                    hover
-                    onClick={() => handleRowClick(d)}
-                    sx={{ cursor: "pointer" }}
-                  >
-                    <TableCell>{d.asset}</TableCell>
-                    <TableCell>{d.tipo}</TableCell>
-                    <TableCell>{d.modello}</TableCell>
-                    <TableCell>{d.numeroTelefono || "—"}</TableCell>
-                    <TableCell>{d.gestore}</TableCell>
-                    <TableCell
-                      sx={{
-                          fontWeight: 600,
+          >
+            {paginatedDevices.length === 0 ? (
+              <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
+                <Typography>Nessun dispositivo trovato.</Typography>
+              </Box>
+            ) : (
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow sx={{ backgroundColor: "var(--table-head)" }}>
+                      <TableCell sx={{ fontWeight: "bold" }}>Asset</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>IMEI</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>Dispositivo</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>Modello</TableCell>
+                      <TableCell sx={{ fontWeight: "bold" }}>Numero Serie</TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: "bold",
                           textAlign: "center",
                           borderLeft: "1px solid var(--neutro-200)",
                         }}
-                      align="center"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <IconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenMenu(e, d.id!);
-                        }}
-                        size="small"
                       >
-                        <MoreVert />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                        Azioni
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedDevices.map((d) => (
+                      <TableRow key={d.id} hover sx={{ "&:hover": { backgroundColor: "action.hover" } }}>
+                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.asset}</TableCell>
+                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.imei || "—"}</TableCell>
+                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.dispositivo || "—"}</TableCell>
+                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.modello || "—"}</TableCell>
+                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.numeroSerie || "—"}</TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{ borderLeft: "1px solid var(--neutro-200)" }}
+                        >
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={(e) => handleMenuClick(e, d.id)}
+                            endIcon={<MoreVertIcon fontSize="small" />}
+                          >
+                            Azioni
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </Paper>
-        )}
-      </Box>
 
-  
-      <Dialog
-        open={detailOpen}
-        onClose={handleCloseDetail}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          Dettagli Dispositivo: <strong>{selectedDevice?.asset}</strong>
-        </DialogTitle>
-        <DialogContent dividers>
-          {selectedDevice && (
-            <Box sx={{ display: "grid", gap: 2, fontSize: "0.975rem" }}>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Email
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.email || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Tipo
-                </Typography>
-                <Typography fontWeight={500}>{selectedDevice.tipo}</Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Modello
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.modello}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Numero Telefono
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.numeroTelefono || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Sede
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.sede || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  ID Inventario
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.idInventario || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Fornitore
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.fornitore || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Gestore
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.gestore}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Servizio
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.servizio || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Data Inizio
-                </Typography>
-                <Typography fontWeight={500}>
-                  {selectedDevice.inizio || "—"}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography color="text.secondary" fontSize="0.875rem">
-                  Note
-                </Typography>
-                <Typography fontWeight={500} sx={{ whiteSpace: "pre-wrap" }}>
-                  {selectedDevice.note || "—"}
-                </Typography>
-              </Box>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDetail}>Chiudi</Button>
-        </DialogActions>
-      </Dialog>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+            <Pagination
+              count={Math.ceil(filteredDevices.length / rowsPerPage)}
+              page={page}
+              onChange={(_, value) => setPage(value)}
+              color="primary"
+              size="small"
+              showFirstButton
+              showLastButton
+              sx={{ "& .MuiPaginationItem-root": { borderRadius: "8px" } }}
+            />
+          </Box>
+        </Box>
+      </Collapse>
 
-      {/* FAB AGGIUNGI */}
-      <Fab
-        color="primary"
-        aria-label="aggiungi"
-        sx={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          backgroundColor: "var(--blue-consob-600)",
-          "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-        }}
-        onClick={handleAdd}
-      >
-        <AddIcon />
-      </Fab>
-
-      {/* MENU AZIONI */}
+     
       <Menu
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
+        onClose={handleMenuClose}
         PaperProps={{
           sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
         }}
       >
         <MenuItem onClick={handleEdit}>Modifica</MenuItem>
-        <MenuItem onClick={handleOpenDeleteModal} sx={{ color: "error.main" }}>
+        <MenuItem onClick={handleDeleteClick} sx={{ color: "error.main" }}>
           Elimina
         </MenuItem>
       </Menu>
 
-      {/* MODALE FORM (Aggiungi/Modifica) */}
-      <Dialog
-        open={openForm}
-        onClose={() => {
-          setOpenForm(false);
-          resetForm();
-        }}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>
-          {newElement.id
-            ? "Modifica Dispositivo"
-            : "Aggiungi Nuovo Dispositivo"}
+      
+      <Dialog open={openAddDialog} onClose={closeAddDialog} maxWidth="md" fullWidth>
+        <DialogTitle
+          sx={{
+            backgroundColor: "var(--blue-consob-600)",
+            color: "white",
+            textAlign: "center",
+          }}
+        >
+          {editMode ? "Modifica Dispositivo" : "Aggiungi Nuovo Dispositivo"}
         </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={1.5} sx={{ mt: 1 }}>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+        <DialogContent sx={{ pt: 4 , m: 2}}>
+                    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+            {/* Asset */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Asset <span style={{ color: "red" }}>*</span>
+              </Typography>
               <TextField
-                label="Asset *"
                 fullWidth
-                value={newElement.asset}
-                onChange={(e) =>
-                  setNew({ ...newElement, asset: e.target.value })
-                }
+                size="small"
+                value={newDevice.asset}
+                onChange={(e) => setNewDevice({ ...newDevice, asset: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                select
-                label="Tipo Dispositivo *"
-                fullWidth
-                value={newElement.tipo}
-                onChange={(e) =>
-                  setNew({ ...newElement, tipo: e.target.value })
-                }
-              >
-                {deviceTypes.map((t) => (
-                  <MenuItem key={t.id} value={t.descrizione}>
-                    {t.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
+
+            {/* Dispositivo */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Dispositivo <span style={{ color: "red" }}>*</span>
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={newDevice.dispositivo}
+                  onChange={(e) => setNewDevice({ ...newDevice, dispositivo: e.target.value })}
+                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                >
+                  {deviceTypes.map((t) => (
+                    <MenuItem key={t.id} value={t.descrizione}>
+                      {t.descrizione}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* IMEI */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                IMEI
+              </Typography>
               <TextField
-                select
-                label="Modello"
                 fullWidth
-                value={newElement.modello}
-                onChange={(e) =>
-                  setNew({ ...newElement, modello: e.target.value })
-                }
-              >
-                {deviceModels.map((m) => (
-                  <MenuItem key={m.id} value={m.descrizione}>
-                    {m.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Email"
-                fullWidth
-                value={newElement.email}
-                onChange={(e) =>
-                  setNew({ ...newElement, email: e.target.value })
-                }
+                size="small"
+                value={newDevice.imei}
+                onChange={(e) => setNewDevice({ ...newDevice, imei: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* Numero Serie */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Numero Serie
+              </Typography>
               <TextField
-                label="Numero di Telefono"
                 fullWidth
-                value={newElement.numeroTelefono}
-                onChange={(e) =>
-                  setNew({ ...newElement, numeroTelefono: e.target.value })
-                }
+                size="small"
+                value={newDevice.numeroSerie}
+                onChange={(e) => setNewDevice({ ...newDevice, numeroSerie: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* Modello */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Modello
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={newDevice.modello}
+                  onChange={(e) => setNewDevice({ ...newDevice, modello: e.target.value })}
+                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                >
+                  {deviceModels.map((m) => (
+                    <MenuItem key={m.id} value={m.desModello}>
+                      {m.desModello}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Numero Telefono */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Numero Telefono
+              </Typography>
               <TextField
-                label="Sede"
                 fullWidth
-                value={newElement.sede}
-                onChange={(e) =>
-                  setNew({ ...newElement, sede: e.target.value })
-                }
+                size="small"
+                value={newDevice.numeroTelefono}
+                onChange={(e) => setNewDevice({ ...newDevice, numeroTelefono: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* Sede */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Sede
+              </Typography>
               <TextField
-                label="ID Inventario"
                 fullWidth
-                value={newElement.idInventario}
-                onChange={(e) =>
-                  setNew({ ...newElement, idInventario: e.target.value })
-                }
+                size="small"
+                value={newDevice.sede}
+                onChange={(e) => setNewDevice({ ...newDevice, sede: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* ID Inventario */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                ID Inventario
+              </Typography>
               <TextField
-                label="Fornitore"
                 fullWidth
-                value={newElement.fornitore}
-                onChange={(e) =>
-                  setNew({ ...newElement, fornitore: e.target.value })
-                }
+                size="small"
+                value={newDevice.idInventario}
+                onChange={(e) => setNewDevice({ ...newDevice, idInventario: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* Fornitore */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Fornitore
+              </Typography>
               <TextField
-                select
-                label="Gestore"
                 fullWidth
-                value={newElement.gestore}
-                onChange={(e) =>
-                  setNew({ ...newElement, gestore: e.target.value })
-                }
-              >
-                {mobileProviders.map((p) => (
-                  <MenuItem key={p.id} value={p.descrizione}>
-                    {p.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
+                size="small"
+                value={newDevice.fornitore}
+                onChange={(e) => setNewDevice({ ...newDevice, fornitore: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+              />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                select
-                label="Servizio"
-                fullWidth
-                value={newElement.servizio}
-                onChange={(e) =>
-                  setNew({ ...newElement, servizio: e.target.value })
-                }
-              >
-                {deviceStatuses.map((s) => (
-                  <MenuItem key={s.id} value={s.descrizione}>
-                    {s.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
+
+            {/* Gestore */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Gestore
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={newDevice.gestore}
+                  onChange={(e) => setNewDevice({ ...newDevice, gestore: e.target.value })}
+                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                >
+                  {mobileProviders.map((p) => (
+                    <MenuItem key={p.id} value={p.descrizione}>
+                      {p.descrizione}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* Servizio */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Servizio
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={newDevice.servizio}
+                  onChange={(e) => setNewDevice({ ...newDevice, servizio: e.target.value })}
+                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                >
+                  {deviceStatuses.map((s) => (
+                    <MenuItem key={s.id} value={s.descrizione}>
+                      {s.descrizione}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Data Inizio */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Data Inizio
+              </Typography>
               <TextField
-                label="Data Inizio"
                 type="date"
                 fullWidth
+                size="small"
                 InputLabelProps={{ shrink: true }}
-                value={newElement.inizio}
-                onChange={(e) =>
-                  setNew({ ...newElement, inizio: e.target.value })
-                }
+                value={newDevice.inizio}
+                onChange={(e) => setNewDevice({ ...newDevice, inizio: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
+
+            {/* Data Fine */}
+            <Box>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Data Fine
+              </Typography>
               <TextField
-                label="Note"
+                type="date"
                 fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                value={newDevice.fine}
+                onChange={(e) => setNewDevice({ ...newDevice, fine: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+              />
+            </Box>
+
+            {/* Note */}
+            <Box sx={{ gridColumn: { xs: "1", sm: "1 / -1" } }}>
+              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+                Note
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
                 multiline
                 rows={2}
-                value={newElement.note}
-                onChange={(e) =>
-                  setNew({ ...newElement, note: e.target.value })
-                }
+                value={newDevice.note}
+                onChange={(e) => setNewDevice({ ...newDevice, note: e.target.value })}
+                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
               />
             </Box>
-          </Grid>
+          </Box>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={closeAddDialog}>Annulla</Button>
           <Button
-            onClick={() => {
-              setOpenForm(false);
-              resetForm();
-            }}
-            disabled={loading}
-          >
-            Annulla
-          </Button>
-          <Button
-            variant="contained"
             onClick={handleSave}
-            disabled={loading}
+            variant="contained"
             sx={{
               backgroundColor: "var(--blue-consob-600)",
               "&:hover": { backgroundColor: "var(--blue-consob-800)" },
@@ -793,242 +859,57 @@ const handleApplySearch = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      {/* MODALE DI SUCCESSO */}
+<Dialog open={successModalOpen} onClose={() => setSuccessModalOpen(false)} maxWidth="xs" fullWidth>
+  <DialogContent sx={{ textAlign: "center", py: 4 }}>
+    <Box
+      sx={{
+        width: 60,
+        height: 60,
+        borderRadius: "50%",
+        bgcolor: "success.light",
+        color: "success.contrastText",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        mx: "auto",
+        mb: 2,
+      }}
+    >
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <path d="M20 6L9 17l-5-5" />
+      </svg>
+    </Box>
+    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+      Operazione completata
+    </Typography>
+    <Typography variant="body1" color="text.secondary">
+      {successMessage}
+    </Typography>
+  </DialogContent>
+  <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+    <Button
+      onClick={() => setSuccessModalOpen(false)}
+      variant="contained"
+      sx={{
+        minWidth: 120,
+        backgroundColor: "var(--blue-consob-600)",
+        "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+      }}
+    >
+      Chiudi
+    </Button>
+  </DialogActions>
+</Dialog>
 
-      {/* MODALE RICERCA */}
-      <Dialog
-        open={openSearch}
-        onClose={() => setOpenSearch(false)}
-        maxWidth="lg"
-        fullWidth
-      >
-        <DialogTitle>Ricerca Avanzata</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={1.5} sx={{ mt: 1 }}>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Asset"
-                fullWidth
-                value={searchCriteria.asset || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    asset: e.target.value,
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                select
-                label="Tipo Dispositivo"
-                fullWidth
-                value={searchCriteria.tipo || ""}
-                onChange={(e) =>
-                  setSearchCriteria({ ...searchCriteria, tipo: e.target.value })
-                }
-              >
-                <MenuItem value="">
-                  <em>Tutti</em>
-                </MenuItem>
-                {deviceTypes.map((t) => (
-                  <MenuItem key={t.id} value={t.descrizione}>
-                    {t.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                select
-                label="Modello"
-                fullWidth
-                value={searchCriteria.modello || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    modello: e.target.value,
-                  })
-                }
-              >
-                <MenuItem value="">
-                  <em>Tutti</em>
-                </MenuItem>
-                {deviceModels.map((m) => (
-                  <MenuItem key={m.id} value={m.descrizione}>
-                    {m.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Email"
-                fullWidth
-                value={searchCriteria.email || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    email: e.target.value,
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Numero di Telefono"
-                fullWidth
-                value={searchCriteria.numeroTelefono || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    numeroTelefono: e.target.value,
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Sede"
-                fullWidth
-                value={searchCriteria.sede || ""}
-                onChange={(e) =>
-                  setSearchCriteria({ ...searchCriteria, sede: e.target.value })
-                }
-              />
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="ID Inventario"
-                fullWidth
-                value={searchCriteria.idInventario || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    idInventario: e.target.value,
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Fornitore"
-                fullWidth
-                value={searchCriteria.fornitore || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    fornitore: e.target.value,
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                select
-                label="Gestore"
-                fullWidth
-                value={searchCriteria.gestore || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    gestore: e.target.value,
-                  })
-                }
-              >
-                <MenuItem value="">
-                  <em>Tutti</em>
-                </MenuItem>
-                {mobileProviders.map((p) => (
-                  <MenuItem key={p.id} value={p.descrizione}>
-                    {p.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                select
-                label="Servizio"
-                fullWidth
-                value={searchCriteria.servizio || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    servizio: e.target.value,
-                  })
-                }
-              >
-                <MenuItem value="">
-                  <em>Tutti</em>
-                </MenuItem>
-                {deviceStatuses.map((s) => (
-                  <MenuItem key={s.id} value={s.descrizione}>
-                    {s.descrizione}
-                  </MenuItem>
-                ))}
-              </TextField>
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Data Inizio"
-                type="date"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                value={searchCriteria.inizio || ""}
-                onChange={(e) =>
-                  setSearchCriteria({
-                    ...searchCriteria,
-                    inizio: e.target.value,
-                  })
-                }
-              />
-            </Box>
-            <Box sx={{ width: { xs: "100%", md: "30.333%" }, px: 0.75 }}>
-              <TextField
-                label="Note"
-                fullWidth
-                multiline
-                rows={2}
-                value={searchCriteria.note || ""}
-                onChange={(e) =>
-                  setSearchCriteria({ ...searchCriteria, note: e.target.value })
-                }
-              />
-            </Box>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSearchCriteria({})}>Pulisci</Button>
-          <Button onClick={() => setOpenSearch(false)}>Chiudi</Button>
-          <Button
-            variant="contained"
-            onClick={handleApplySearch}
-            sx={{
-              backgroundColor: "var(--blue-consob-600)",
-              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-            }}
-          >
-            Applica Filtro
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* MODALE CONFERMA ELIMINAZIONE */}
-      <Dialog
-        open={deleteModalOpen}
-        onClose={() => !deleting && setDeleteModalOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
+      {/* Dialog Conferma Eliminazione */}
+      <Dialog open={deleteModalOpen} onClose={() => !deleting && setDeleteModalOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Conferma Eliminazione
-          </Typography>
+          <Typography variant="h6">Conferma Eliminazione</Typography>
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1">
-            Sei sicuro di voler eliminare il dispositivo{" "}
-            <strong>{deviceToDelete?.asset}</strong>?
+            Sei sicuro di voler eliminare il dispositivo <strong>{deviceToDelete?.asset}</strong>?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Questa azione è <strong>irreversibile</strong>.
@@ -1048,8 +929,8 @@ const handleApplySearch = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </section>
   );
-};
+}
 
 export default DeviceManagementComponent;

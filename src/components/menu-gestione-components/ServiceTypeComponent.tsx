@@ -53,7 +53,8 @@ function ServiceTypeComponent() {
   const [serviceToDelete, setServiceToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const paginatedServices = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -95,15 +96,19 @@ function ServiceTypeComponent() {
       const payload = { descrizione: newService.descrizione };
 
       if (editMode && selectedId !== null) {
-      await axios.put(API.serviceTypes.update.replace(":id", String(selectedId)),
-  payload);
-    } else {
-      await axios.post(API.serviceTypes.create, payload);
-    }
-
+        await axios.put(
+          API.serviceTypes.update.replace(":id", String(selectedId)),
+          payload
+        );
+        setSuccessMessage("Servizio modificato con successo!");
+      } else {
+        await axios.post(API.serviceTypes.create, payload);
+        setSuccessMessage("Servizio aggiunto con successo!");
+      }
 
       await getServiceData();
       closeAddDialog();
+      setSuccessModalOpen(true);
     } catch (error) {
       console.error("Errore salvataggio:", error);
       alert("Errore durante il salvataggio.");
@@ -130,19 +135,26 @@ function ServiceTypeComponent() {
     setDeleting(true);
     setDeleteError(null);
     try {
-    const url = API.serviceTypes.delete.replace(":id", String(serviceToDelete));
-    await axios.delete(url);
+      const url = API.serviceTypes.delete.replace(
+        ":id",
+        String(serviceToDelete)
+      );
+      await axios.delete(url);
       await getServiceData();
       setShowList(true);
-    } catch (error) {
-      console.error("Errore cancellazione:", error);
-      alert("Errore durante l'eliminazione del tipo.");
-    } finally {
-      setDeleting(false);
       setDeleteModalOpen(false);
       setServiceToDelete(null);
+
+      setSuccessMessage("Servizio eliminato con successo!");
+      setSuccessModalOpen(true);
+    } catch (error) {
+      console.error("Errore nella cancellazione:", error);
+      alert("Errore durante l'eliminazione del modello.");
+    } finally {
+      setDeleting(false);
     }
   };
+
 
   function handleEdit(service: ServiceType) {
     setEditMode(true);
@@ -600,6 +612,60 @@ function ServiceTypeComponent() {
             disabled={deleting}
           >
             {deleting ? "Eliminazione..." : "Elimina"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* MODALE DI SUCCESSO */}
+      <Dialog
+        open={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogContent sx={{ textAlign: "center", py: 4 }}>
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              bgcolor: "success.light",
+              color: "success.contrastText",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </Box>
+          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+            Operazione completata
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {successMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button
+            onClick={() => setSuccessModalOpen(false)}
+            variant="contained"
+            sx={{
+              minWidth: 120,
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+            }}
+          >
+            Chiudi
           </Button>
         </DialogActions>
       </Dialog>

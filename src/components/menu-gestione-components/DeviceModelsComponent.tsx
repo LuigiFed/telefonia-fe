@@ -52,7 +52,8 @@ function DeviceModelsComponent() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
-
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const paginatedDevices = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -85,7 +86,7 @@ function DeviceModelsComponent() {
 
   async function handleSave() {
     if (!newDevice.desModello?.trim()) {
-      alert("Compila il campo descrizione.");
+      alert("La descrizione è obbligatoria.");
       return;
     }
 
@@ -93,16 +94,24 @@ function DeviceModelsComponent() {
       const payload = { desModello: newDevice.desModello };
 
       if (editMode && selectedId !== null) {
-      await axios.put(API.deviceModels.update.replace(":id", String(selectedId)), payload);
-    } else {
-      await axios.post(API.deviceModels.create, payload);
-    }
+        await axios.put(
+          API.deviceModels.update.replace(":id", String(selectedId)),
+          payload
+        );
+        setSuccessMessage("Modello modificato con successo!");
+      } else {
+        await axios.post(API.deviceModels.create, payload);
+        setSuccessMessage("Modello aggiunto con successo!");
+      }
 
       await getDeviceData();
       closeAddDialog();
+
+ 
+      setSuccessModalOpen(true);
     } catch (error) {
-      console.error("Errore:", error);
-      alert("Errore durante il salvataggio.");
+      console.error("Errore durante il salvataggio:", error);
+      alert("Errore durante il salvataggio del modello.");
     }
   }
 
@@ -124,17 +133,25 @@ function DeviceModelsComponent() {
 
     setDeleting(true);
     try {
-    const url = API.deviceModels.delete.replace(":id", String(deviceToDelete));
-    await axios.delete(url);
+      const url = API.deviceModels.delete.replace(
+        ":id",
+        String(deviceToDelete)
+      );
+      await axios.delete(url);
+
       await getDeviceData();
       setShowList(true);
+
+      setDeleteModalOpen(false);
+      setDeviceToDelete(null);
+
+      setSuccessMessage("Modello eliminato con successo!");
+      setSuccessModalOpen(true);
     } catch (error) {
       console.error("Errore nella cancellazione:", error);
       alert("Errore durante l'eliminazione del modello.");
     } finally {
       setDeleting(false);
-      setDeleteModalOpen(false);
-      setDeviceToDelete(null);
     }
   };
 
@@ -244,7 +261,7 @@ function DeviceModelsComponent() {
           }}
         >
           <Box sx={{ minWidth: 120 }}>
-            <Typography  
+            <Typography
               variant="body2"
               color="var(--neutro-800)"
               sx={{ mb: 0.5, display: "block" }}
@@ -252,7 +269,8 @@ function DeviceModelsComponent() {
               {" "}
               ID
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               size="small"
               value={searchCriteria.id}
               onChange={(e) =>
@@ -290,7 +308,8 @@ function DeviceModelsComponent() {
             >
               Descrizione
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               size="small"
               value={searchCriteria.desModello}
               onChange={(e) =>
@@ -504,7 +523,8 @@ function DeviceModelsComponent() {
             >
               ID *
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               fullWidth
               value={newDevice.id}
               onChange={(e) =>
@@ -531,7 +551,8 @@ function DeviceModelsComponent() {
             >
               Descrizione *
             </Typography>
-            <TextField className="textFieldInput"
+            <TextField
+              className="textFieldInput"
               fullWidth
               value={newDevice.desModello}
               onChange={(e) =>
@@ -585,6 +606,60 @@ function DeviceModelsComponent() {
             disabled={deleting}
           >
             {deleting ? "Eliminazione..." : "Elimina"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* MODALE DI SUCCESSO */}
+      <Dialog
+        open={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogContent sx={{ textAlign: "center", py: 4 }}>
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              bgcolor: "success.light",
+              color: "success.contrastText",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </Box>
+          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+            Operazione completata
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {successMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button
+            onClick={() => setSuccessModalOpen(false)}
+            variant="contained"
+            sx={{
+              minWidth: 120,
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+            }}
+          >
+            Chiudi
           </Button>
         </DialogActions>
       </Dialog>

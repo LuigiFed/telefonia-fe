@@ -54,6 +54,9 @@ function MobileProvidersComponent() {
   const [providerToDelete, setProviderToDelete] = useState<number | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
   const paginatedProviders = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
@@ -85,33 +88,36 @@ function MobileProvidersComponent() {
     getProviderData();
   }, []);
 
-  async function handleSave() {
-    // if (!newProvider.codice?.trim() || !newProvider.descrizione?.trim()) {
-    //   alert("Compila tutti i campi obbligatori.");
-    //   return;
-    // }
-
-    try {
-      const payload = {
-        //codice: newProvider.codice,
-        descrizione: newProvider.descrizione,
-      };
-
-      if (editMode && selectedId !== null) {
-      await axios.put(API.mobileProviders.update.replace(":id", String(selectedId)),
-  payload);
-    } else {
-      await axios.post(API.mobileProviders.create, payload);
-    }
-
-      await getProviderData();
-      closeAddDialog();
-    } catch (error) {
-      console.error("Errore durante il salvataggio:", error);
-      alert("Errore durante il salvataggio del provider.");
-    }
+ async function handleSave() {
+  if (!newProvider.descrizione?.trim()) {
+    alert("La descrizione è obbligatoria.");
+    return;
   }
 
+  try {
+    const payload = {
+      descrizione: newProvider.descrizione,
+    };
+
+    if (editMode && selectedId !== null) {
+      await axios.put(API.mobileProviders.update.replace(":id", String(selectedId)), payload);
+      setSuccessMessage("Provider modificato con successo!");
+    } else {
+      await axios.post(API.mobileProviders.create, payload);
+      setSuccessMessage("Provider aggiunto con successo!");
+    }
+
+    await getProviderData();
+    closeAddDialog();
+
+    // MOSTRA MODALE DI SUCCESSO
+    setSuccessModalOpen(true);
+
+  } catch (error) {
+    console.error("Errore durante il salvataggio:", error);
+    alert("Errore durante il salvataggio del provider.");
+  }
+}
   const closeAddDialog = () => {
     setOpenAddDialog(false);
     setEditMode(false);
@@ -125,24 +131,32 @@ function MobileProvidersComponent() {
     handleMenuClose();
   };
 
-  const handleConfirmDelete = async () => {
-    if (!providerToDelete) return;
+const handleConfirmDelete = async () => {
+  if (!providerToDelete) return;
 
-    setDeleting(true);
-    try {
+  setDeleting(true);
+  try {
     const url = API.mobileProviders.delete.replace(":id", String(providerToDelete));
     await axios.delete(url);
-      await getProviderData();
-      setShowList(true);
-    } catch (error) {
-      console.error("Errore nella cancellazione:", error);
-      alert("Errore durante l'eliminazione del modello.");
-    } finally {
-      setDeleting(false);
-      setDeleteModalOpen(false);
-      setProviderToDelete(null);
-    }
-  };
+
+    await getProviderData();
+    setShowList(true);
+
+    // CHIUDI MODALE DI CONFERMA
+    setDeleteModalOpen(false);
+    setProviderToDelete(null);
+
+    // MOSTRA SUCCESSO
+    setSuccessMessage("Provider eliminato con successo!");
+    setSuccessModalOpen(true);
+
+  } catch (error) {
+    console.error("Errore nella cancellazione:", error);
+    alert("Errore durante l'eliminazione del provider.");
+  } finally {
+    setDeleting(false);
+  }
+};
 
   function handleEdit(provider: MobileProvider) {
     setEditMode(true);
@@ -258,7 +272,7 @@ function MobileProvidersComponent() {
             alignItems: "flex-end",
           }}
         >
-          <Box sx={{ minWidth: 100 }}>
+          <Box sx={{ minWidth: 120 }}>
             <Typography
               variant="body2"
               color="var(--neutro-800)"
@@ -296,11 +310,6 @@ function MobileProvidersComponent() {
               }}
             />
           </Box>
-
-          <Box sx={{ minWidth: 120 }}>
-          
-          </Box>
-
           <Box sx={{ flex: 1, minWidth: 200 }}>
             <Typography
               variant="body2"
@@ -614,6 +623,49 @@ function MobileProvidersComponent() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* MODALE DI SUCCESSO */}
+<Dialog open={successModalOpen} onClose={() => setSuccessModalOpen(false)} maxWidth="xs" fullWidth>
+  <DialogContent sx={{ textAlign: "center", py: 4 }}>
+    <Box
+      sx={{
+        width: 60,
+        height: 60,
+        borderRadius: "50%",
+        bgcolor: "success.light",
+        color: "success.contrastText",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        mx: "auto",
+        mb: 2,
+      }}
+    >
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <path d="M20 6L9 17l-5-5" />
+      </svg>
+    </Box>
+    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+      Operazione completata
+    </Typography>
+    <Typography variant="body1" color="text.secondary">
+      {successMessage}
+    </Typography>
+  </DialogContent>
+  <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+    <Button
+      onClick={() => setSuccessModalOpen(false)}
+      variant="contained"
+      sx={{
+        minWidth: 120,
+        backgroundColor: "var(--blue-consob-600)",
+        "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+      }}
+    >
+      Chiudi
+    </Button>
+  </DialogActions>
+</Dialog>
     </section>
   );
 }
