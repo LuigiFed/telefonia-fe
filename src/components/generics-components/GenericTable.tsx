@@ -15,7 +15,7 @@ import {
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 
 interface Column<T> {
-  key: keyof T | "actions";
+  key: keyof T | "actions" | "select";
   label: string;
   width?: string;
   align?: "left" | "center" | "right";

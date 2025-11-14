@@ -3,9 +3,12 @@ import { Search as SearchIcon } from "@mui/icons-material";
 
 interface FilterField {
   label: string;
-  value: string;
+  value: string ;
   onChange: (value: string) => void;
+  placeholder?: string;
   minWidth?: number;
+  startAdornment?: React.ReactNode;
+  endAdornment?: React.ReactNode;
   flex?: number;
 }
 

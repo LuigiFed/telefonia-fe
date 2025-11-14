@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Box, CircularProgress, Typography, Menu, MenuItem } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Typography,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import axios from "axios";
 
 import { DeleteConfirmModal } from "../generics-components/DeleteModal";
@@ -12,13 +18,14 @@ import { SuccessModal } from "../generics-components/SuccessModal";
 import "../../theme/default/MenuGestioneComponents.css";
 import "../../theme/default/InputFields.css";
 
-
 import { API } from "../../mock/mock/api/endpoints";
 import type { MobileProvider } from "../../types/types";
 
 function MobileProvidersComponent() {
   const [allProviders, setAllProviders] = useState<MobileProvider[]>([]);
-  const [filteredProviders, setFilteredProviders] = useState<MobileProvider[]>([]);
+  const [filteredProviders, setFilteredProviders] = useState<MobileProvider[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
 
   const [searchCriteria, setSearchCriteria] = useState({
@@ -71,16 +78,22 @@ function MobileProvidersComponent() {
     let results = [...allProviders];
 
     if (searchCriteria.id) {
-      results = results.filter(p => p.id.toString().includes(searchCriteria.id.trim()));
+      results = results.filter((p) =>
+        p.id.toString().includes(searchCriteria.id.trim())
+      );
     }
     if (searchCriteria.codice) {
-      results = results.filter(p =>
-        p.codice.toLowerCase().includes(searchCriteria.codice.trim().toLowerCase())
+      results = results.filter((p) =>
+        p.codice
+          .toLowerCase()
+          .includes(searchCriteria.codice.trim().toLowerCase())
       );
     }
     if (searchCriteria.descrizione) {
-      results = results.filter(p =>
-        p.descrizione.toLowerCase().includes(searchCriteria.descrizione.trim().toLowerCase())
+      results = results.filter((p) =>
+        p.descrizione
+          .toLowerCase()
+          .includes(searchCriteria.descrizione.trim().toLowerCase())
       );
     }
 
@@ -120,7 +133,10 @@ function MobileProvidersComponent() {
       };
 
       if (editMode && selectedId) {
-        await axios.put(API.mobileProviders.update.replace(":id", String(selectedId)), payload);
+        await axios.put(
+          API.mobileProviders.update.replace(":id", String(selectedId)),
+          payload
+        );
         setSuccessMessage("Provider modificato con successo!");
       } else {
         await axios.post(API.mobileProviders.create, payload);
@@ -168,7 +184,7 @@ function MobileProvidersComponent() {
   };
 
   const handleMenuAction = (action: "edit" | "delete") => {
-    const provider = allProviders.find(p => p.id === menuProviderId);
+    const provider = allProviders.find((p) => p.id === menuProviderId);
     if (!provider) return;
     if (action === "edit") {
       handleEdit(provider);
@@ -181,7 +197,9 @@ function MobileProvidersComponent() {
     if (!providerToDelete) return;
     setDeleting(true);
     try {
-      await axios.delete(API.mobileProviders.delete.replace(":id", String(providerToDelete)));
+      await axios.delete(
+        API.mobileProviders.delete.replace(":id", String(providerToDelete))
+      );
       await getProviderData();
       setDeleteModalOpen(false);
       setSuccessMessage("Provider eliminato con successo!");
@@ -194,7 +212,10 @@ function MobileProvidersComponent() {
   };
 
   return (
-    <section className="menu-gestione" style={{ marginLeft: 16, marginRight: 16 }}>
+    <section
+      className="menu-gestione"
+      style={{ marginLeft: 16, marginRight: 16 }}
+    >
       {/* Header */}
       <GenericSearchHeader
         title="Cerca Provider Mobile"
@@ -208,19 +229,21 @@ function MobileProvidersComponent() {
           {
             label: "ID",
             value: searchCriteria.id,
-            onChange: v => setSearchCriteria({ ...searchCriteria, id: v }),
+            onChange: (v) => setSearchCriteria({ ...searchCriteria, id: v }),
             minWidth: 120,
           },
           {
             label: "Codice",
             value: searchCriteria.codice,
-            onChange: v => setSearchCriteria({ ...searchCriteria, codice: v }),
+            onChange: (v) =>
+              setSearchCriteria({ ...searchCriteria, codice: v }),
             minWidth: 120,
           },
           {
             label: "Descrizione",
             value: searchCriteria.descrizione,
-            onChange: v => setSearchCriteria({ ...searchCriteria, descrizione: v }),
+            onChange: (v) =>
+              setSearchCriteria({ ...searchCriteria, descrizione: v }),
             minWidth: 200,
             flex: 1,
           },
@@ -243,7 +266,7 @@ function MobileProvidersComponent() {
       {!isFiltered && !loading && (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
           <Typography variant="body1">
-            Inserisci i criteri di ricerca e premi <strong>Ricerca</strong>
+            Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
           </Typography>
         </Box>
       )}
@@ -273,10 +296,15 @@ function MobileProvidersComponent() {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
-        PaperProps={{ sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" } }}
+        PaperProps={{
+          sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
+        }}
       >
         <MenuItem onClick={() => handleMenuAction("edit")}>Modifica</MenuItem>
-        <MenuItem onClick={() => handleMenuAction("delete")} sx={{ color: "error.main" }}>
+        <MenuItem
+          onClick={() => handleMenuAction("delete")}
+          sx={{ color: "error.main" }}
+        >
           Elimina
         </MenuItem>
       </Menu>
@@ -297,12 +325,12 @@ function MobileProvidersComponent() {
           {
             label: "Codice",
             value: newProvider.codice,
-            onChange: v => setNewProvider({ ...newProvider, codice: v }),
+            onChange: (v) => setNewProvider({ ...newProvider, codice: v }),
           },
           {
             label: "Descrizione",
             value: newProvider.descrizione,
-            onChange: v => setNewProvider({ ...newProvider, descrizione: v }),
+            onChange: (v) => setNewProvider({ ...newProvider, descrizione: v }),
           },
         ]}
         onSave={handleSave}

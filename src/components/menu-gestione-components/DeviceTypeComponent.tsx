@@ -227,6 +227,14 @@ const clearSearch = () => {
           </Typography>
         </Box>
       )}
+          {/* Messaggio iniziale */}
+            {!isFiltered && !loading && (
+              <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
+                <Typography variant="body1">
+                  Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
+                </Typography>
+              </Box>
+            )}
 
       {/* Tabella */}
       <GenericTable<DeviceType>

@@ -11,10 +11,12 @@ import {
 
 interface FormField {
   label: string;
+  type?: "text" | "date" | "textarea" | "select" | "autocomplete" | "custom";
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
   helperText?: string;
+  
 }
 
 interface GenericFormDialogProps {

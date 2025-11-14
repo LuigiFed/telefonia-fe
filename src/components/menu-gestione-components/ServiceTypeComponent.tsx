@@ -222,7 +222,7 @@ function ServiceTypeComponent() {
       {!isFiltered && !loading && (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
           <Typography variant="body1">
-            Inserisci i criteri di ricerca e premi <strong>Ricerca</strong>
+            Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
           </Typography>
         </Box>
       )}
