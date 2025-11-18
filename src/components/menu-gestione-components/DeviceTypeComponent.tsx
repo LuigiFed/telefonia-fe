@@ -1,12 +1,4 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Menu,
-  MenuItem,
-} from "@mui/material";
-import axios from "axios";
+import {Box,CircularProgress,Typography} from "@mui/material";
 
 import { DeleteConfirmModal } from "../generics-components/DeleteModal";
 import { GenericFormDialog } from "../generics-components/GenericFormDialog";
@@ -15,174 +7,69 @@ import { GenericSearchFilters } from "../generics-components/GenericSearchFilter
 import { GenericTable } from "../generics-components/GenericTable";
 import { SuccessModal } from "../generics-components/SuccessModal";
 
-import "../../theme/default/MenuGestioneComponents.css";
+
 import "../../theme/default/InputFields.css";
 import { API } from "../../mock/mock/api/endpoints";
 import type { DeviceType } from "../../types/types";
+import { useGenericCrud } from "../../hooks/useGenericCrud";
 
 function DeviceTypeComponent() {
-  const [allTypes, setAllTypes] = useState<DeviceType[]>([]);
-  const [filteredTypes, setFilteredTypes] = useState<DeviceType[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const [searchCriteria, setSearchCriteria] = useState({
-    ID: "",
-    descrizione: "",
+  const crud = useGenericCrud<DeviceType, { id: string; descrizione: string }>({
+    endpoints: {
+      list: API.deviceTypes.list,
+      create: API.deviceTypes.create,
+      update: API.deviceTypes.update,
+      delete: API.deviceTypes.delete,
+    },
+    itemName: "stato",
+    createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
+    getItemId: (item) => item.id,
+    validateItem: (item) => {
+      if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
+      return null;
+    },
   });
-
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [newType, setNewType] = useState({ ID: "", descrizione: "" });
-  const [isFiltered, setIsFiltered] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuTypeId, setMenuTypeId] = useState<number | null>(null);
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [typeToDelete, setTypeToDelete] = useState<number | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
-  const getDeviceTypeData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(API.deviceTypes.list);
-      const data = res.data || [];
-      setAllTypes(data);
-      setFilteredTypes(data);
-    } catch (err) {
-      console.error("Errore fetch:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    getDeviceTypeData();
-  }, []);
-
- const applySearch = () => {
-  let results = [...allTypes];
-  if (searchCriteria.ID) {
-    results = results.filter(t => t.id.toString().includes(searchCriteria.ID.trim()));
-  }
-  if (searchCriteria.descrizione) {
-    results = results.filter(t =>
-      t.descrizione.toLowerCase().includes(searchCriteria.descrizione.trim().toLowerCase())
-    );
-  }
-  setFilteredTypes(results);
-  setIsFiltered(true); 
-};
-
-const clearSearch = () => {
-  setSearchCriteria({ ID: "", descrizione: "" });
-  setFilteredTypes(allTypes);
-  setIsFiltered(false); 
-};
-
-
-  const openAddDialogFn = () => {
-    setEditMode(false);
-    setNewType({ ID: "", descrizione: "" });
-    setOpenAddDialog(true);
-  };
-
-  const closeAddDialog = () => {
-    setOpenAddDialog(false);
-    setEditMode(false);
-    setSelectedId(null);
-    setNewType({ ID: "", descrizione: "" });
-  };
-
-  const handleSave = async () => {
-    if (!newType.ID?.trim() || !newType.descrizione?.trim()) {
-      alert("Compila tutti i campi obbligatori.");
-      return;
-    }
-    try {
-      if (editMode && selectedId) {
-        await axios.put(
-          API.deviceTypes.update.replace(":id", String(selectedId)),
-          {
-            id: parseInt(newType.ID),
-            descrizione: newType.descrizione,
-          }
-        );
-        setSuccessMessage("Tipo modificato con successo!");
-      } else {
-        await axios.post(API.deviceTypes.create, {
-          id: parseInt(newType.ID),
-          descrizione: newType.descrizione,
-        });
-        setSuccessMessage("Tipo aggiunto con successo!");
-      }
-      await getDeviceTypeData();
-      closeAddDialog();
-      setSuccessModalOpen(true);
-    } catch {
-      alert("Errore durante il salvataggio.");
-    }
-  };
-
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    id: string | number
+  const filterFunction = (
+    items: DeviceType[],
+    criteria: { id: string; descrizione: string }
   ) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-    setMenuTypeId(typeof id === "string" ? parseInt(id) : id);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuTypeId(null);
-  };
-
-  const handleEdit = (type: DeviceType) => {
-    setEditMode(true);
-    setSelectedId(type.id);
-    setNewType({ ID: type.id.toString(), descrizione: type.descrizione });
-    setOpenAddDialog(true);
-    handleMenuClose();
-  };
-
-  const handleDeleteClick = (id: number) => {
-    setTypeToDelete(id);
-    setDeleteModalOpen(true);
-    handleMenuClose();
-  };
-
-  const handleMenuAction = (action: "edit" | "delete") => {
-    const type = allTypes.find((t) => t.id === menuTypeId);
-    if (!type) return;
-
-    if (action === "edit") {
-      handleEdit(type);
-    } else {
-      handleDeleteClick(type.id);
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!typeToDelete) return;
-    setDeleting(true);
-    try {
-      await axios.delete(
-        API.deviceTypes.delete.replace(":id", String(typeToDelete))
+    return items.filter((i) => {
+      return (
+        (!criteria.id || i.id.toString().includes(criteria.id)) &&
+        (!criteria.descrizione ||
+          i.descrizione
+            .toLowerCase()
+            .includes(criteria.descrizione.toLowerCase()))
       );
-      await getDeviceTypeData();
-      setDeleteModalOpen(false);
-      setSuccessMessage("Tipo eliminato con successo!");
-      setSuccessModalOpen(true);
-    } catch {
-      alert("Errore durante l'eliminazione.");
-    } finally {
-      setDeleting(false);
-    }
+    });
   };
+
+  const {
+    searchCriteria,
+    setSearchCriteria,
+    filteredItems,
+    loading,
+    isFiltered,
+    openAddDialog,
+    openDialog,
+    closeDialog,
+    page,
+    rowsPerPage,
+    setPage,
+    setRowsPerPage,
+    handleEdit,        
+    handleDelete, 
+    editMode,
+    currentItem,
+    setCurrentItem,
+    saveItem: handleSaveItem,
+    deleteModalOpen,
+    setDeleteModalOpen,
+    confirmDelete: handleConfirmDelete,
+    successModalOpen,
+    setSuccessModalOpen,
+    successMessage,
+  } = crud;
 
   return (
     <section
@@ -192,7 +79,7 @@ const clearSearch = () => {
       {/* Header */}
       <GenericSearchHeader
         title="Cerca Tipi"
-        onAddNew={openAddDialogFn}
+        onAddNew={openAddDialog}
         addButtonLabel="Aggiungi Tipo"
       />
 
@@ -201,8 +88,8 @@ const clearSearch = () => {
         fields={[
           {
             label: "ID",
-            value: searchCriteria.ID,
-            onChange: (v) => setSearchCriteria({ ...searchCriteria, ID: v }),
+            value: searchCriteria.id,
+            onChange: (v) => setSearchCriteria({ ...searchCriteria, id: v }),
             minWidth: 120,
           },
           {
@@ -214,8 +101,8 @@ const clearSearch = () => {
             flex: 1,
           },
         ]}
-        onSearch={applySearch}
-        onClear={clearSearch}
+        onSearch={() => crud.applySearch(filterFunction)}
+        onClear={() => crud.clearSearch({ id: "", descrizione: "" })}
       />
 
       {/* Loading */}
@@ -227,71 +114,56 @@ const clearSearch = () => {
           </Typography>
         </Box>
       )}
-          {/* Messaggio iniziale */}
-            {!isFiltered && !loading && (
-              <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
-                <Typography variant="body1">
-                  Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
-                </Typography>
-              </Box>
-            )}
+      {/* Messaggio iniziale */}
+      {!isFiltered && !loading && (
+        <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
+          <Typography variant="body1">
+            Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
+          </Typography>
+        </Box>
+      )}
 
       {/* Tabella */}
       <GenericTable<DeviceType>
-        data={filteredTypes}
+        data={filteredItems}
         columns={[
           { key: "id", label: "ID", width: "20%" },
           { key: "descrizione", label: "Descrizione", width: "65%" },
           { key: "actions", label: "Azioni", width: "15%", align: "center" },
         ]}
-        page={1}
-        rowsPerPage={10}
-        onPageChange={() => {}}
-        onMenuClick={handleMenuClick}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setPage}
+        onRowsPerPageChange={setRowsPerPage}
+        onEdit={handleEdit}           
+        onDelete={handleDelete}   
         showList={isFiltered && !loading}
         loading={loading}
         emptyMessage="Nessun tipo trovato."
-        isFiltered={filteredTypes.length !== allTypes.length}
-        totalCount={filteredTypes.length}
+        isFiltered={isFiltered}
+        totalCount={filteredItems.length}
         itemName="tipo"
       />
 
-      {/* Menu Azioni */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
-        }}
-      >
-        <MenuItem onClick={() => handleMenuAction("edit")}>Modifica</MenuItem>
-        <MenuItem
-          onClick={() => handleMenuAction("delete")}
-          sx={{ color: "error.main" }}
-        >
-          Elimina
-        </MenuItem>
-      </Menu>
-
       {/* Dialog Aggiungi/Modifica */}
       <GenericFormDialog
-        open={openAddDialog}
-        onClose={closeAddDialog}
+        open={openDialog}
+        onClose={closeDialog}
         title={editMode ? "Modifica Tipo" : "Aggiungi Nuovo Tipo"}
         fields={[
           {
             label: "ID",
-            value: newType.ID,
-            onChange: (v) => setNewType({ ...newType, ID: v }),
+            value: currentItem.id,
+            onChange: (v) =>
+              setCurrentItem({ ...currentItem, id: Number(v) || 0 }),
           },
           {
             label: "Descrizione",
-            value: newType.descrizione,
-            onChange: (v) => setNewType({ ...newType, descrizione: v }),
+            value: currentItem.descrizione,
+            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
           },
         ]}
-        onSave={handleSave}
+        onSave={handleSaveItem}
         editMode={editMode}
       />
 
@@ -300,8 +172,8 @@ const clearSearch = () => {
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        deleting={deleting}
-        itemName="tipo"
+        deleting={loading}
+        itemName="modello"
       />
 
       {/* Successo */}

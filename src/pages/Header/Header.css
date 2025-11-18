@@ -1,0 +1,25 @@
+
+header {
+  z-index: 1500 !important;
+  padding: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+}
+
+.white-band {
+  height: 48px;
+  background-color: var(--neutro-100);
+  width: fill-available;
+}
+
+.blue-band {
+  height: 72px;
+  background: linear-gradient(
+    90deg,
+    var(--blue-consob-800) 0%,
+    var(--blue-consob-600) 100%
+  );
+  width: fill-available;
+}
+

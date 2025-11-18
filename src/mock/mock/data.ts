@@ -1,4 +1,4 @@
-import type { Assegnatario, Device, DeviceManagement, DeviceModel, DeviceStatus, DeviceType, MobileProvider, ServiceType } from "../../types/types";
+import type { Assegnatario, Convention, Device, DeviceManagement, DeviceModel, DeviceStatus, DeviceType, MobileProvider, ServiceType } from "../../types/types";
 
 export const devices: DeviceModel[] = [
   { id: 1, desModello: "Router AC1200" },
@@ -187,4 +187,14 @@ export const serviceType: ServiceType[] = [
   { id: 1, descrizione: "Fonia e dati" },
   { id: 2, descrizione: "Accesso Internet" },
   { id: 3, descrizione: "Accesso WiFi" },
+];
+
+export const convention : Convention[] = [
+  { id: 1, descrizione: "Convenzione A" },
+  { id: 2, descrizione: "Convenzione B" },
+  { id: 3, descrizione: "Convenzione C" },
+  { id: 4, descrizione: "Convenzione D" },
+  { id: 5, descrizione: "Convenzione E" },
+  { id: 6, descrizione: "Convenzione F" },
+  { id: 7, descrizione: "Convenzione G" },
 ];

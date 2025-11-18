@@ -1,0 +1,48 @@
+/* Sidebar look and feel similar to the screenshot */
+.sidebar-nav {
+  background-color: #f8fafc; /* very light background */
+}
+
+.sidebar-section-label {
+  letter-spacing: 0.04em;
+}
+
+.sidebar-list .sidebar-item {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #1f2937; /* slate-800 */
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.sidebar-list .sidebar-item i {
+  font-size: 1.05rem;
+}
+
+/* Active item with left blue indicator and subtle background */
+.sidebar-list .sidebar-item.active {
+  position: relative;
+  background-color: #e9f2ff; /* light blue */
+  color: #0b5ed7; /* bootstrap primary shade */
+  font-weight: 600;
+}
+
+.sidebar-list .sidebar-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: #0b5ed7;
+}
+
+/* Hover state */
+.sidebar-list .sidebar-item:hover {
+  background-color: #eef2f7;
+}
+
+.font-list-item {
+  color: #000000;
+}

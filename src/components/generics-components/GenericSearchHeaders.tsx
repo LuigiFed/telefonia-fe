@@ -4,12 +4,14 @@ interface GenericSearchHeaderProps {
   title: string;
   onAddNew: () => void;
   addButtonLabel: string;
+  addButtonDisabled?: boolean;
 }
 
 export const GenericSearchHeader = ({
   title,
   onAddNew,
   addButtonLabel,
+  addButtonDisabled = false,
 }: GenericSearchHeaderProps) => (
   <Box
     sx={{
@@ -25,6 +27,7 @@ export const GenericSearchHeader = ({
     <Button
       variant="contained"
       onClick={onAddNew}
+      disabled={addButtonDisabled}
       sx={{
         backgroundColor: "var(--blue-consob-600)",
         "&:hover": { backgroundColor: "var(--blue-consob-800)" },

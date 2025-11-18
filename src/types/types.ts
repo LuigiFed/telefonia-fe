@@ -77,6 +77,11 @@ export type ServiceType = {
   descrizione: string;
 }
 
+export type Convention = {
+  id: number;
+  descrizione: string;
+}
+
 export type Method = "get" | "post" | "put" | "delete";
 
 export interface BaseEndpoint {

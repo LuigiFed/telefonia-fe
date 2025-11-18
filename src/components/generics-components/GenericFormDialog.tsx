@@ -12,8 +12,8 @@ import {
 interface FormField {
   label: string;
   type?: "text" | "date" | "textarea" | "select" | "autocomplete" | "custom";
-  value: string;
-  onChange: (value: string) => void;
+  value: string | number;
+  onChange: (value: string ) => void;
   disabled?: boolean;
   helperText?: string;
   
@@ -36,7 +36,7 @@ export const GenericFormDialog = ({
   onSave,
 }: GenericFormDialogProps) => (
   <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-    <DialogTitle
+    <DialogTitle  className="row blue-band align-items-center"
       sx={{
         backgroundColor: "var(--blue-consob-600)",
         color: "white",

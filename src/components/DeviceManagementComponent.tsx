@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Paper,
   CircularProgress,
@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  Menu,
   MenuItem,
   InputAdornment,
   Collapse,
@@ -22,9 +21,12 @@ import {
   TableBody,
   Pagination,
   Select,
-  FormControl
+  FormControl,
+  Tooltip,
+  IconButton,
 } from "@mui/material";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import axios from "axios";
 import type {
@@ -39,7 +41,9 @@ import { API } from "../mock/mock/api/endpoints";
 
 function DeviceManagementComponent() {
   const [allDevices, setAllDevices] = useState<DeviceManagement[]>([]);
-  const [filteredDevices, setFilteredDevices] = useState<DeviceManagement[]>([]);
+  const [filteredDevices, setFilteredDevices] = useState<DeviceManagement[]>(
+    []
+  );
   const [loading, setLoading] = useState(false);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -69,22 +73,22 @@ function DeviceManagementComponent() {
   const [mobileProviders, setMobileProviders] = useState<MobileProvider[]>([]);
   const [deviceStatuses, setDeviceStatuses] = useState<DeviceStatus[]>([]);
 
-  // Menu e azioni
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuDeviceId, setMenuDeviceId] = useState<number | null>(null);
-
   // Paginazione
   const [page, setPage] = useState(1);
   const rowsPerPage = 10;
 
   // Filtri
   const [isFiltered, setIsFiltered] = useState(false);
-  const [searchCriteria, setSearchCriteria] = useState<Partial<DeviceManagement>>({});
+  const [searchCriteria, setSearchCriteria] = useState<
+    Partial<DeviceManagement>
+  >({});
   const [showList, setShowList] = useState(false);
 
   // Eliminazione
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState<DeviceManagement | null>(null);
+  const [deviceToDelete, setDeviceToDelete] = useState<DeviceManagement | null>(
+    null
+  );
   const [deleting, setDeleting] = useState(false);
 
   // Modal di successo
@@ -107,13 +111,14 @@ function DeviceManagementComponent() {
   async function getDeviceData() {
     setLoading(true);
     try {
-      const [devicesRes, typesRes, modelsRes, providersRes, statusesRes] = await Promise.all([
-        axios.get(API.deviceManagement.list),
-        axios.get<DeviceType[]>(API.deviceTypes.list),
-        axios.get<DeviceModel[]>(API.deviceModels.list),
-        axios.get<MobileProvider[]>(API.mobileProviders.list),
-        axios.get<DeviceStatus[]>(API.deviceStatuses.list),
-      ]);
+      const [devicesRes, typesRes, modelsRes, providersRes, statusesRes] =
+        await Promise.all([
+          axios.get(API.deviceManagement.list),
+          axios.get<DeviceType[]>(API.deviceTypes.list),
+          axios.get<DeviceModel[]>(API.deviceModels.list),
+          axios.get<MobileProvider[]>(API.mobileProviders.list),
+          axios.get<DeviceStatus[]>(API.deviceStatuses.list),
+        ]);
 
       const devices = Array.isArray(devicesRes.data) ? devicesRes.data : [];
       setAllDevices(devices);
@@ -139,34 +144,35 @@ function DeviceManagementComponent() {
   }, []);
 
   // Salvataggio
- async function handleSave() {
-  if (!newDevice.asset?.trim() || !newDevice.dispositivo?.trim()) {
-    alert("Compila i campi obbligatori: Asset e Dispositivo.");
-    return;
-  }
-
-  try {
-    const payload = { ...newDevice };
-
-    if (editMode && selectedId !== null) {
-      await axios.put(API.deviceManagement.update.replace(":id", String(selectedId)), payload);
-      setSuccessMessage("Dispositivo modificato con successo!");
-    } else {
-      await axios.post(API.deviceManagement.create, payload);
-      setSuccessMessage("Dispositivo aggiunto con successo!");
+  async function handleSave() {
+    if (!newDevice.asset?.trim() || !newDevice.dispositivo?.trim()) {
+      alert("Compila i campi obbligatori: Asset e Dispositivo.");
+      return;
     }
 
-    await getDeviceData();
-    closeAddDialog();
+    try {
+      const payload = { ...newDevice };
 
-    
-    setSuccessModalOpen(true);
+      if (editMode && selectedId !== null) {
+        await axios.put(
+          API.deviceManagement.update.replace(":id", String(selectedId)),
+          payload
+        );
+        setSuccessMessage("Dispositivo modificato con successo!");
+      } else {
+        await axios.post(API.deviceManagement.create, payload);
+        setSuccessMessage("Dispositivo aggiunto con successo!");
+      }
 
-  } catch (error) {
-    console.error("Errore salvataggio:", error);
-    alert("Errore durante il salvataggio del dispositivo.");
+      await getDeviceData();
+      closeAddDialog();
+
+      setSuccessModalOpen(true);
+    } catch (error) {
+      console.error("Errore salvataggio:", error);
+      alert("Errore durante il salvataggio del dispositivo.");
+    }
   }
-}
 
   const closeAddDialog = () => {
     setOpenAddDialog(false);
@@ -193,78 +199,121 @@ function DeviceManagementComponent() {
   };
 
   // Azioni menu
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>, id: number) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-    setMenuDeviceId(id);
-  };
+  // const handleMenuClick = (
+  //   event: React.MouseEvent<HTMLElement>,
+  //   id: number
+  // ) => {
+  //   event.stopPropagation();
+  //   setAnchorEl(event.currentTarget);
+  //   setMenuDeviceId(id);
+  // };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuDeviceId(null);
-  };
+  // const handleMenuClose = () => {
+  //   setAnchorEl(null);
+  //   setMenuDeviceId(null);
+  // };
 
-  const handleEdit = () => {
-    const device = allDevices.find((d) => d.id === menuDeviceId);
+  const handleEdit = (device: DeviceManagement) => {
     if (!device) return;
+
     setEditMode(true);
     setSelectedId(device.id);
     setNewDevice({ ...device });
     setOpenAddDialog(true);
-    handleMenuClose();
   };
 
-  const handleDeleteClick = () => {
-    const device = allDevices.find((d) => d.id === menuDeviceId);
+  const handleDeleteClick = (device: DeviceManagement) => {
     if (!device) return;
+
     setDeviceToDelete(device);
     setDeleteModalOpen(true);
-    handleMenuClose();
   };
 
-const handleConfirmDelete = async () => {
-  if (!deviceToDelete) return;
-  setDeleting(true);
-  try {
-    const url = API.deviceManagement.delete.replace(":id", String(deviceToDelete.id));
-    await axios.delete(url);
-    
-    await getDeviceData();
-    setShowList(true);
+  const handleConfirmDelete = async () => {
+    if (!deviceToDelete) return;
+    setDeleting(true);
+    try {
+      const url = API.deviceManagement.delete.replace(
+        ":id",
+        String(deviceToDelete.id)
+      );
+      await axios.delete(url);
 
+      await getDeviceData();
+      setShowList(true);
 
-    setDeleteModalOpen(false);
-    setDeviceToDelete(null);
+      setDeleteModalOpen(false);
+      setDeviceToDelete(null);
 
-
-    setSuccessMessage("Dispositivo eliminato con successo!");
-    setSuccessModalOpen(true);
-
-  } catch (error) {
-    console.error("Errore eliminazione:", error);
-    alert("Errore durante l'eliminazione del dispositivo.");
-  } finally {
-    setDeleting(false);
-  }
-};
+      setSuccessMessage("Dispositivo eliminato con successo!");
+      setSuccessModalOpen(true);
+    } catch (error) {
+      console.error("Errore eliminazione:", error);
+      alert("Errore durante l'eliminazione del dispositivo.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Ricerca
   const applySearch = () => {
     let results = [...allDevices];
     const s = searchCriteria;
 
-    if (s.asset?.trim()) results = results.filter((d) => d.asset.toLowerCase().includes(s.asset!.trim().toLowerCase()));
-    if (s.imei?.trim()) results = results.filter((d) => d.imei?.toLowerCase().includes(s.imei!.trim().toLowerCase()));
-    if (s.numeroSerie?.trim()) results = results.filter((d) => d.numeroSerie?.toLowerCase().includes(s.numeroSerie!.trim().toLowerCase()));
-    if (s.idInventario?.trim()) results = results.filter((d) => d.idInventario?.toLowerCase().includes(s.idInventario!.trim().toLowerCase()));
-    if (s.dispositivo?.trim()) results = results.filter((d) => d.dispositivo.toLowerCase().includes(s.dispositivo!.trim().toLowerCase()));
-    if (s.modello?.trim()) results = results.filter((d) => d.modello.toLowerCase().includes(s.modello!.trim().toLowerCase()));
-    if (s.numeroTelefono?.trim()) results = results.filter((d) => d.numeroTelefono?.includes(s.numeroTelefono!.trim()));
-    if (s.sede?.trim()) results = results.filter((d) => d.sede?.toLowerCase().includes(s.sede!.trim().toLowerCase()));
-    if (s.fornitore?.trim()) results = results.filter((d) => d.fornitore?.toLowerCase().includes(s.fornitore!.trim().toLowerCase()));
-    if (s.gestore?.trim()) results = results.filter((d) => d.gestore.toLowerCase().includes(s.gestore!.trim().toLowerCase()));
-    if (s.servizio?.trim()) results = results.filter((d) => d.servizio.toLowerCase().includes(s.servizio!.trim().toLowerCase()));
-    if (s.note?.trim()) results = results.filter((d) => (d.note || "").toLowerCase().includes(s.note!.trim().toLowerCase()));
+    if (s.asset?.trim())
+      results = results.filter((d) =>
+        d.asset.toLowerCase().includes(s.asset!.trim().toLowerCase())
+      );
+    if (s.imei?.trim())
+      results = results.filter((d) =>
+        d.imei?.toLowerCase().includes(s.imei!.trim().toLowerCase())
+      );
+    if (s.numeroSerie?.trim())
+      results = results.filter((d) =>
+        d.numeroSerie
+          ?.toLowerCase()
+          .includes(s.numeroSerie!.trim().toLowerCase())
+      );
+    if (s.idInventario?.trim())
+      results = results.filter((d) =>
+        d.idInventario
+          ?.toLowerCase()
+          .includes(s.idInventario!.trim().toLowerCase())
+      );
+    if (s.dispositivo?.trim())
+      results = results.filter((d) =>
+        d.dispositivo
+          .toLowerCase()
+          .includes(s.dispositivo!.trim().toLowerCase())
+      );
+    if (s.modello?.trim())
+      results = results.filter((d) =>
+        d.modello.toLowerCase().includes(s.modello!.trim().toLowerCase())
+      );
+    if (s.numeroTelefono?.trim())
+      results = results.filter((d) =>
+        d.numeroTelefono?.includes(s.numeroTelefono!.trim())
+      );
+    if (s.sede?.trim())
+      results = results.filter((d) =>
+        d.sede?.toLowerCase().includes(s.sede!.trim().toLowerCase())
+      );
+    if (s.fornitore?.trim())
+      results = results.filter((d) =>
+        d.fornitore?.toLowerCase().includes(s.fornitore!.trim().toLowerCase())
+      );
+    if (s.gestore?.trim())
+      results = results.filter((d) =>
+        d.gestore.toLowerCase().includes(s.gestore!.trim().toLowerCase())
+      );
+    if (s.servizio?.trim())
+      results = results.filter((d) =>
+        d.servizio.toLowerCase().includes(s.servizio!.trim().toLowerCase())
+      );
+    if (s.note?.trim())
+      results = results.filter((d) =>
+        (d.note || "").toLowerCase().includes(s.note!.trim().toLowerCase())
+      );
     if (s.inizio) results = results.filter((d) => d.inizio === s.inizio);
     if (s.fine) results = results.filter((d) => d.fine === s.fine);
     if (s.stato) results = results.filter((d) => d.stato === s.stato);
@@ -284,213 +333,254 @@ const handleConfirmDelete = async () => {
   };
 
   return (
-    <section className="menu-gestione" style={{ marginLeft: 16, marginRight: 16 }}>
+    <section className="menu-gestione" style={{ margin: "16px" }}>
+      {/* HEADER */}
       <Box
-        className="header"
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           mb: 3,
+          mt: 10,
         }}
       >
-        <Typography variant="h6" className="title" sx={{ mb: 2 }}>
-          Gestione Dispositivi Telefonia Mobile
+        <Typography variant="h6" className="title">
+          Gestione Dispositivi
         </Typography>
-        <Box>
-          <Button
-            variant="contained"
-            onClick={() => {
-              setEditMode(false);
-              closeAddDialog();
-              setOpenAddDialog(true);
-            }}
-            sx={{
-              backgroundColor: "var(--blue-consob-600)",
-              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-              borderRadius: 1,
-              textTransform: "none",
-              fontWeight: 500,
-            }}
-          >
-            Aggiungi Nuovo Dispositivo
-          </Button>
-        </Box>
+        <Button
+          variant="contained"
+          onClick={() => {
+            setEditMode(false);
+            closeAddDialog();
+            setOpenAddDialog(true);
+          }}
+          sx={{
+            backgroundColor: "var(--blue-consob-600)",
+            "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+            borderRadius: 1,
+            textTransform: "none",
+            fontWeight: 500,
+          }}
+        >
+          Aggiungi Nuovo Dispositivo
+        </Button>
       </Box>
 
       {/* Filtri di ricerca */}
       <Box sx={{ mb: 4 }}>
-       <Box
-  sx={{
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 2,
-    alignItems: "flex-end",
-    mb: 3,
-  }}
->
-  {/* Asset */}
-  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
-    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
-      Asset
-    </Typography>
-    <TextField
-      size="small"
-      fullWidth
-      value={searchCriteria.asset || ""}
-      onChange={(e) => setSearchCriteria({ ...searchCriteria, asset: e.target.value })}
-      variant="outlined"
-      sx={{
-        "& .MuiOutlinedInput-root": {
-          borderRadius: 1,
-          backgroundColor: "var(--neutro-100)",
-          "& fieldset": { borderColor: "divider" },
-          "&:hover fieldset": { borderColor: "primary.main" },
-          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
-        },
-        "& .MuiInputBase-input": { py: 1 },
-      }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon fontSize="small" />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Box>
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 2,
+            alignItems: "flex-end",
+            mb: 3,
+          }}
+        >
+          {/* Asset */}
+          <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+            <Typography
+              variant="body2"
+              color="var(--neutro-800)"
+              sx={{ mb: 0.5 }}
+            >
+              Asset
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              value={searchCriteria.asset || ""}
+              onChange={(e) =>
+                setSearchCriteria({ ...searchCriteria, asset: e.target.value })
+              }
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1,
+                  backgroundColor: "var(--neutro-100)",
+                  "& fieldset": { borderColor: "divider" },
+                  "&:hover fieldset": { borderColor: "primary.main" },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.main",
+                    borderWidth: 1,
+                  },
+                },
+                "& .MuiInputBase-input": { py: 1 },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
 
-  {/* IMEI */}
-  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
-    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
-      IMEI
-    </Typography>
-    <TextField
-      size="small"
-      fullWidth
-      value={searchCriteria.imei || ""}
-      onChange={(e) => setSearchCriteria({ ...searchCriteria, imei: e.target.value })}
-      variant="outlined"
-      sx={{
-        "& .MuiOutlinedInput-root": {
-          backgroundColor: "var(--neutro-100)",
-          "& fieldset": { borderColor: "divider" },
-          "&:hover fieldset": { borderColor: "primary.main" },
-          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
-        },
-        "& .MuiInputBase-input": { py: 1 },
-      }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon fontSize="small" />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Box>
+          {/* IMEI */}
+          <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+            <Typography
+              variant="body2"
+              color="var(--neutro-800)"
+              sx={{ mb: 0.5 }}
+            >
+              IMEI
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              value={searchCriteria.imei || ""}
+              onChange={(e) =>
+                setSearchCriteria({ ...searchCriteria, imei: e.target.value })
+              }
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  backgroundColor: "var(--neutro-100)",
+                  "& fieldset": { borderColor: "divider" },
+                  "&:hover fieldset": { borderColor: "primary.main" },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.main",
+                    borderWidth: 1,
+                  },
+                },
+                "& .MuiInputBase-input": { py: 1 },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
 
-  {/* Dispositivo */}
-  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
-    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
-      Dispositivo
-    </Typography>
-    <TextField
-      size="small"
-      fullWidth
-      value={searchCriteria.dispositivo || ""}
-      onChange={(e) => setSearchCriteria({ ...searchCriteria, dispositivo: e.target.value })}
-      variant="outlined"
-      sx={{
-        "& .MuiOutlinedInput-root": {
-          backgroundColor: "var(--neutro-100)",
-          "& fieldset": { borderColor: "divider" },
-          "&:hover fieldset": { borderColor: "primary.main" },
-          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
-        },
-        "& .MuiInputBase-input": { py: 1 },
-      }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon fontSize="small" />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Box>
+          {/* Dispositivo */}
+          <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+            <Typography
+              variant="body2"
+              color="var(--neutro-800)"
+              sx={{ mb: 0.5 }}
+            >
+              Dispositivo
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              value={searchCriteria.dispositivo || ""}
+              onChange={(e) =>
+                setSearchCriteria({
+                  ...searchCriteria,
+                  dispositivo: e.target.value,
+                })
+              }
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  backgroundColor: "var(--neutro-100)",
+                  "& fieldset": { borderColor: "divider" },
+                  "&:hover fieldset": { borderColor: "primary.main" },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.main",
+                    borderWidth: 1,
+                  },
+                },
+                "& .MuiInputBase-input": { py: 1 },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
 
-  {/* Modello */}
-  <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
-    <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5 }}>
-      Modello
-    </Typography>
-    <TextField
-      size="small"
-      fullWidth
-      value={searchCriteria.modello || ""}
-      onChange={(e) => setSearchCriteria({ ...searchCriteria, modello: e.target.value })}
-      variant="outlined"
-      sx={{
-        "& .MuiOutlinedInput-root": {
-          backgroundColor: "var(--neutro-100)",
-          "& fieldset": { borderColor: "divider" },
-          "&:hover fieldset": { borderColor: "primary.main" },
-          "&.Mui-focused fieldset": { borderColor: "primary.main", borderWidth: 1 },
-        },
-        "& .MuiInputBase-input": { py: 1 },
-      }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchIcon fontSize="small" />
-          </InputAdornment>
-        ),
-      }}
-    />
-  </Box>
+          {/* Modello */}
+          <Box sx={{ minWidth: 150, flex: "1 1 150px" }}>
+            <Typography
+              variant="body2"
+              color="var(--neutro-800)"
+              sx={{ mb: 0.5 }}
+            >
+              Modello
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              value={searchCriteria.modello || ""}
+              onChange={(e) =>
+                setSearchCriteria({
+                  ...searchCriteria,
+                  modello: e.target.value,
+                })
+              }
+              variant="outlined"
+              sx={{
+                "& .MuiOutlinedInput-root": {
+                  backgroundColor: "var(--neutro-100)",
+                  "& fieldset": { borderColor: "divider" },
+                  "&:hover fieldset": { borderColor: "primary.main" },
+                  "&.Mui-focused fieldset": {
+                    borderColor: "primary.main",
+                    borderWidth: 1,
+                  },
+                },
+                "& .MuiInputBase-input": { py: 1 },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
 
-  {/* Pulsanti */}
-  <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
-    <Button
-      variant="outlined"
-      onClick={applySearch}
-      sx={{
-        height: 40,
-        minWidth: 100,
-        backgroundColor: "var(--neutro-100)",
-        color: "var(--blue-consob-600)",
-        borderRadius: 1,
-        borderColor: "var(--blue-consob-600)",
-        textTransform: "none",
-        fontWeight: 500,
-        "&:hover": {
-          backgroundColor: "var(--blue-consob-800)",
-          color: "white",
-          borderColor: "var(--blue-consob-800)",
-        },
-      }}
-    >
-      Ricerca
-    </Button>
-    <Button
-      onClick={clearSearch}
-      sx={{
-        height: 40,
-        minWidth: 100,
-        color: "var(--blue-consob-600)",
-        borderRadius: 1,
-        textTransform: "none",
-        fontWeight: 500,
-        "&:hover": {
-          backgroundColor: "var(--neutro-200)",
-        },
-      }}
-    >
-      Pulisci
-    </Button>
-  </Box>
-</Box>
+          {/* Pulsanti */}
+          <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+            <Button
+              variant="outlined"
+              onClick={applySearch}
+              sx={{
+                height: 40,
+                minWidth: 100,
+                backgroundColor: "var(--neutro-100)",
+                color: "var(--blue-consob-600)",
+                borderRadius: 1,
+                borderColor: "var(--blue-consob-600)",
+                textTransform: "none",
+                fontWeight: 500,
+                "&:hover": {
+                  backgroundColor: "var(--blue-consob-800)",
+                  color: "white",
+                  borderColor: "var(--blue-consob-800)",
+                },
+              }}
+            >
+              Ricerca
+            </Button>
+            <Button
+              onClick={clearSearch}
+              sx={{
+                height: 40,
+                minWidth: 100,
+                color: "var(--blue-consob-600)",
+                borderRadius: 1,
+                textTransform: "none",
+                fontWeight: 500,
+                "&:hover": {
+                  backgroundColor: "var(--neutro-200)",
+                },
+              }}
+            >
+              Pulisci
+            </Button>
+          </Box>
+        </Box>
       </Box>
 
       {loading && (
@@ -512,68 +602,99 @@ const handleConfirmDelete = async () => {
 
       <Collapse in={showList && !loading} timeout="auto" unmountOnExit>
         <Box sx={{ maxWidth: 1400, mx: "auto", px: 2, mb: 4 }}>
-          <Paper
-            elevation={3}
-            sx={{
-              borderRadius: "12px",
-              overflow: "hidden",
-              border: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            {paginatedDevices.length === 0 ? (
-              <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
-                <Typography>Nessun dispositivo trovato.</Typography>
-              </Box>
-            ) : (
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: "var(--table-head)" }}>
-                      <TableCell sx={{ fontWeight: "bold" }}>Asset</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>IMEI</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Dispositivo</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Modello</TableCell>
-                      <TableCell sx={{ fontWeight: "bold" }}>Numero Serie</TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: "bold",
-                          textAlign: "center",
-                          borderLeft: "1px solid var(--neutro-200)",
-                        }}
-                      >
-                        Azioni
+          {paginatedDevices.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: "center", color: "text.secondary" }}>
+              <Typography>Nessun dispositivo trovato.</Typography>
+            </Box>
+          ) : (
+            <TableContainer
+              component={Paper}
+              elevation={0}
+              sx={{
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+              }}
+            >
+              <Table size="small">
+                <TableHead>
+                  <TableRow
+                    sx={{ backgroundColor: "var(--table-head, #f5f7fa)" }}
+                  >
+                    <TableCell sx={{ fontWeight: 600 }}>Asset</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>IMEI</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Dispositivo</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Modello</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Numero Serie</TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{ fontWeight: 600, width: 120 }}
+                    >
+                      Azioni
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paginatedDevices.map((d) => (
+                    <TableRow
+                      key={d.id}
+                      hover
+                      sx={{
+                        "&:last-child td, &:last-child th": { border: 0 },
+                        "&:hover": { backgroundColor: "action.hover" },
+                      }}
+                    >
+                      <TableCell>{d.asset}</TableCell>
+                      <TableCell>{d.imei || "—"}</TableCell>
+                      <TableCell>{d.dispositivo || "—"}</TableCell>
+                      <TableCell>{d.modello || "—"}</TableCell>
+                      <TableCell>{d.numeroSerie || "—"}</TableCell>
+
+                      <TableCell align="center">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 1,
+                          }}
+                        >
+                          {/* MODIFICA */}
+                          <Tooltip title="Modifica dispositivo" arrow>
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleEdit(d)}
+                              sx={{
+                                bgcolor: "background.default",
+                                "&:hover": { bgcolor: "primary.100" },
+                              }}
+                            >
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          {/* ELIMINA */}
+                          <Tooltip title="Elimina dispositivo" arrow>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteClick(d)}
+                              sx={{
+                                bgcolor: "background.default",
+                                "&:hover": { bgcolor: "error.100" },
+                              }}
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedDevices.map((d) => (
-                      <TableRow key={d.id} hover sx={{ "&:hover": { backgroundColor: "action.hover" } }}>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.asset}</TableCell>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.imei || "—"}</TableCell>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.dispositivo || "—"}</TableCell>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.modello || "—"}</TableCell>
-                        <TableCell sx={{ color: "var(--neutro-600)" }}>{d.numeroSerie || "—"}</TableCell>
-                        <TableCell
-                          align="center"
-                          sx={{ borderLeft: "1px solid var(--neutro-200)" }}
-                        >
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={(e) => handleMenuClick(e, d.id)}
-                            endIcon={<MoreVertIcon fontSize="small" />}
-                          >
-                            Azioni
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            )}
-          </Paper>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
 
           <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
             <Pagination
@@ -590,24 +711,15 @@ const handleConfirmDelete = async () => {
         </Box>
       </Collapse>
 
-     
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
-        }}
+      <Dialog
+        open={openAddDialog}
+        onClose={closeAddDialog}
+        maxWidth="lg"
+        fullWidth
+        sx={{ zIndex: 1501 }}
       >
-        <MenuItem onClick={handleEdit}>Modifica</MenuItem>
-        <MenuItem onClick={handleDeleteClick} sx={{ color: "error.main" }}>
-          Elimina
-        </MenuItem>
-      </Menu>
-
-      
-      <Dialog open={openAddDialog} onClose={closeAddDialog} maxWidth="md" fullWidth>
         <DialogTitle
+          className="row blue-band align-items-center"
           sx={{
             backgroundColor: "var(--blue-consob-600)",
             color: "white",
@@ -616,32 +728,62 @@ const handleConfirmDelete = async () => {
         >
           {editMode ? "Modifica Dispositivo" : "Aggiungi Nuovo Dispositivo"}
         </DialogTitle>
-        <DialogContent sx={{ pt: 4 , m: 2}}>
-                    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+        <DialogContent sx={{ pt: 4, m: 2 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+            }}
+          >
             {/* Asset */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Asset <span style={{ color: "red" }}>*</span>
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={newDevice.asset}
-                onChange={(e) => setNewDevice({ ...newDevice, asset: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, asset: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Dispositivo */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Dispositivo <span style={{ color: "red" }}>*</span>
               </Typography>
               <FormControl fullWidth size="small">
                 <Select
                   value={newDevice.dispositivo}
-                  onChange={(e) => setNewDevice({ ...newDevice, dispositivo: e.target.value })}
-                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                  onChange={(e) =>
+                    setNewDevice({ ...newDevice, dispositivo: e.target.value })
+                  }
+                  MenuProps={{
+                    disablePortal: false,
+                    sx: { zIndex: 1600 },
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
                 >
                   {deviceTypes.map((t) => (
                     <MenuItem key={t.id} value={t.descrizione}>
@@ -654,42 +796,72 @@ const handleConfirmDelete = async () => {
 
             {/* IMEI */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 IMEI
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={newDevice.imei}
-                onChange={(e) => setNewDevice({ ...newDevice, imei: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, imei: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Numero Serie */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Numero Serie
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={newDevice.numeroSerie}
-                onChange={(e) => setNewDevice({ ...newDevice, numeroSerie: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, numeroSerie: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Modello */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Modello
               </Typography>
               <FormControl fullWidth size="small">
                 <Select
                   value={newDevice.modello}
-                  onChange={(e) => setNewDevice({ ...newDevice, modello: e.target.value })}
-                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                  onChange={(e) =>
+                    setNewDevice({ ...newDevice, modello: e.target.value })
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
                 >
                   {deviceModels.map((m) => (
                     <MenuItem key={m.id} value={m.desModello}>
@@ -702,70 +874,124 @@ const handleConfirmDelete = async () => {
 
             {/* Numero Telefono */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Numero Telefono
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={newDevice.numeroTelefono}
-                onChange={(e) => setNewDevice({ ...newDevice, numeroTelefono: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, numeroTelefono: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Sede */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Sede
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={newDevice.sede}
-                onChange={(e) => setNewDevice({ ...newDevice, sede: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, sede: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* ID Inventario */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 ID Inventario
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={newDevice.idInventario}
-                onChange={(e) => setNewDevice({ ...newDevice, idInventario: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, idInventario: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Fornitore */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Fornitore
               </Typography>
               <TextField
                 fullWidth
                 size="small"
                 value={newDevice.fornitore}
-                onChange={(e) => setNewDevice({ ...newDevice, fornitore: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, fornitore: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Gestore */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Gestore
               </Typography>
               <FormControl fullWidth size="small">
                 <Select
                   value={newDevice.gestore}
-                  onChange={(e) => setNewDevice({ ...newDevice, gestore: e.target.value })}
-                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                  onChange={(e) =>
+                    setNewDevice({ ...newDevice, gestore: e.target.value })
+                  }
+                   MenuProps={{
+                    disablePortal: false,
+                    sx: { zIndex: 1600 },
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
                 >
                   {mobileProviders.map((p) => (
                     <MenuItem key={p.id} value={p.descrizione}>
@@ -778,14 +1004,24 @@ const handleConfirmDelete = async () => {
 
             {/* Servizio */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Servizio
               </Typography>
               <FormControl fullWidth size="small">
                 <Select
                   value={newDevice.servizio}
-                  onChange={(e) => setNewDevice({ ...newDevice, servizio: e.target.value })}
-                  sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                  onChange={(e) =>
+                    setNewDevice({ ...newDevice, servizio: e.target.value })
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
                 >
                   {deviceStatuses.map((s) => (
                     <MenuItem key={s.id} value={s.descrizione}>
@@ -798,7 +1034,11 @@ const handleConfirmDelete = async () => {
 
             {/* Data Inizio */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Data Inizio
               </Typography>
               <TextField
@@ -807,14 +1047,24 @@ const handleConfirmDelete = async () => {
                 size="small"
                 InputLabelProps={{ shrink: true }}
                 value={newDevice.inizio}
-                onChange={(e) => setNewDevice({ ...newDevice, inizio: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, inizio: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Data Fine */}
             <Box>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Data Fine
               </Typography>
               <TextField
@@ -823,14 +1073,24 @@ const handleConfirmDelete = async () => {
                 size="small"
                 InputLabelProps={{ shrink: true }}
                 value={newDevice.fine}
-                onChange={(e) => setNewDevice({ ...newDevice, fine: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, fine: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
 
             {/* Note */}
             <Box sx={{ gridColumn: { xs: "1", sm: "1 / -1" } }}>
-              <Typography variant="body2" color="var(--neutro-800)" sx={{ mb: 0.5, fontWeight: 500 }}>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
                 Note
               </Typography>
               <TextField
@@ -839,8 +1099,14 @@ const handleConfirmDelete = async () => {
                 multiline
                 rows={2}
                 value={newDevice.note}
-                onChange={(e) => setNewDevice({ ...newDevice, note: e.target.value })}
-                sx={{ "& .MuiOutlinedInput-root": { backgroundColor: "var(--neutro-100)" } }}
+                onChange={(e) =>
+                  setNewDevice({ ...newDevice, note: e.target.value })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
               />
             </Box>
           </Box>
@@ -860,56 +1126,74 @@ const handleConfirmDelete = async () => {
         </DialogActions>
       </Dialog>
       {/* MODALE DI SUCCESSO */}
-<Dialog open={successModalOpen} onClose={() => setSuccessModalOpen(false)} maxWidth="xs" fullWidth>
-  <DialogContent sx={{ textAlign: "center", py: 4 }}>
-    <Box
-      sx={{
-        width: 60,
-        height: 60,
-        borderRadius: "50%",
-        bgcolor: "success.light",
-        color: "success.contrastText",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        mx: "auto",
-        mb: 2,
-      }}
-    >
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-        <path d="M20 6L9 17l-5-5" />
-      </svg>
-    </Box>
-    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-      Operazione completata
-    </Typography>
-    <Typography variant="body1" color="text.secondary">
-      {successMessage}
-    </Typography>
-  </DialogContent>
-  <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
-    <Button
-      onClick={() => setSuccessModalOpen(false)}
-      variant="contained"
-      sx={{
-        minWidth: 120,
-        backgroundColor: "var(--blue-consob-600)",
-        "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-      }}
-    >
-      Chiudi
-    </Button>
-  </DialogActions>
-</Dialog>
+      <Dialog
+        open={successModalOpen}
+        onClose={() => setSuccessModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogContent sx={{ textAlign: "center", py: 4 }}>
+          <Box
+            sx={{
+              width: 60,
+              height: 60,
+              borderRadius: "50%",
+              bgcolor: "success.light",
+              color: "success.contrastText",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          </Box>
+          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+            Operazione completata
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {successMessage}
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: "center", pb: 3 }}>
+          <Button
+            onClick={() => setSuccessModalOpen(false)}
+            variant="contained"
+            sx={{
+              minWidth: 120,
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+            }}
+          >
+            Chiudi
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Dialog Conferma Eliminazione */}
-      <Dialog open={deleteModalOpen} onClose={() => !deleting && setDeleteModalOpen(false)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={deleteModalOpen}
+        onClose={() => !deleting && setDeleteModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
         <DialogTitle sx={{ pb: 1 }}>
           <Typography variant="h6">Conferma Eliminazione</Typography>
         </DialogTitle>
         <DialogContent>
           <Typography variant="body1">
-            Sei sicuro di voler eliminare il dispositivo <strong>{deviceToDelete?.asset}</strong>?
+            Sei sicuro di voler eliminare il dispositivo{" "}
+            <strong>{deviceToDelete?.asset}</strong>?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Questa azione è <strong>irreversibile</strong>.

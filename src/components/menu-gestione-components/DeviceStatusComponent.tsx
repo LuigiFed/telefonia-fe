@@ -1,12 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Menu,
-  MenuItem,
-} from "@mui/material";
-import axios from "axios";
+import {Box,CircularProgress,Typography} from "@mui/material";
 
 import { DeleteConfirmModal } from "../generics-components/DeleteModal";
 import { GenericFormDialog } from "../generics-components/GenericFormDialog";
@@ -15,215 +7,70 @@ import { GenericSearchFilters } from "../generics-components/GenericSearchFilter
 import { GenericTable } from "../generics-components/GenericTable";
 import { SuccessModal } from "../generics-components/SuccessModal";
 
-import "../../theme/default/MenuGestioneComponents.css";
+
 import "../../theme/default/InputFields.css";
 
 import { API } from "../../mock/mock/api/endpoints";
 import type { DeviceStatus } from "../../types/types";
-
-const ROWS_PER_PAGE = 10;
+import { useGenericCrud } from "../../hooks/useGenericCrud";
 
 function DeviceStatusComponent() {
-  const [allStatuses, setAllStatuses] = useState<DeviceStatus[]>([]);
-  const [filteredStatuses, setFilteredStatuses] = useState<DeviceStatus[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const [searchCriteria, setSearchCriteria] = useState({
-    id: "",
-    descrizione: "",
-    alias: "",
+  const crud = useGenericCrud<DeviceStatus,{ id: string; alias: string; descrizione: string }>({
+    endpoints: {
+      list: API.deviceStatuses.list,
+      create: API.deviceStatuses.create,
+      update: API.deviceStatuses.update,
+      delete: API.deviceStatuses.delete,
+    },
+    itemName: "stato",
+    createEmptyItem: () => ({ id: 0, codice: "", alias:"", descrizione: "" }),
+    getItemId: (item) => item.id,
+    validateItem: (item) => {
+      if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
+      return null;
+    },
   });
-
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [newStatus, setNewStatus] = useState({
-    id: "",
-    descrizione: "",
-    alias: "",
-  });
-
-  const [page, setPage] = useState(1);
-  const [showList, setShowList] = useState(false);
-  const [isFiltered, setIsFiltered] = useState(false);
-
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuStatusId, setMenuStatusId] = useState<number | null>(null);
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [statusToDelete, setStatusToDelete] = useState<number | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
-  const displayStatuses = useMemo(() => {
-    return isFiltered ? filteredStatuses : allStatuses;
-  }, [isFiltered, filteredStatuses, allStatuses]);
-
-  const getStatusData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(API.deviceStatuses.list);
-      const data = res.data || [];
-      setAllStatuses(data);
-      setFilteredStatuses(data);
-      setIsFiltered(false);
-    } catch (err) {
-      console.error("Errore fetch:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    getStatusData();
-  }, []);
-
-  const applySearch = () => {
-    let results = [...allStatuses];
-    if (searchCriteria.id) {
-      results = results.filter((s) =>
-        s.codice.toLowerCase().includes(searchCriteria.id.trim().toLowerCase())
-      );
-    }
-    if (searchCriteria.descrizione) {
-      results = results.filter((s) =>
-        s.descrizione
-          .toLowerCase()
-          .includes(searchCriteria.descrizione.trim().toLowerCase())
-      );
-    }
-    if (searchCriteria.alias) {
-      results = results.filter((s) =>
-        s.alias
-          .toLowerCase()
-          .includes(searchCriteria.alias.trim().toLowerCase())
-      );
-    }
-    setFilteredStatuses(results);
-    setIsFiltered(true);
-    setShowList(true);
-    setPage(1);
-  };
-
-  const clearSearch = () => {
-    setSearchCriteria({ id: "", descrizione: "", alias: "" });
-    setFilteredStatuses(allStatuses);
-    setIsFiltered(false);
-    setShowList(false);
-    setPage(1);
-  };
-
-  const openAddDialogFn = () => {
-    setEditMode(false);
-    setNewStatus({ id: "", descrizione: "", alias: "" });
-    setOpenAddDialog(true);
-  };
-
-  const closeAddDialog = () => {
-    setOpenAddDialog(false);
-    setEditMode(false);
-    setSelectedId(null);
-    setNewStatus({ id: "", descrizione: "", alias: "" });
-  };
-
-  const handleSave = async () => {
-    if (
-      !newStatus.id?.trim() ||
-      !newStatus.descrizione?.trim() ||
-      !newStatus.alias?.trim()
-    ) {
-      alert("Compila tutti i campi obbligatori.");
-      return;
-    }
-
-    try {
-      if (editMode && selectedId) {
-        await axios.put(
-          API.deviceStatuses.update.replace(":id", String(selectedId)),
-          {
-            codice: newStatus.id,
-            descrizione: newStatus.descrizione,
-            alias: newStatus.alias,
-          }
-        );
-        setSuccessMessage("Stato modificato con successo!");
-      } else {
-        await axios.post(API.deviceStatuses.create, {
-          codice: newStatus.id,
-          descrizione: newStatus.descrizione,
-          alias: newStatus.alias,
-        });
-        setSuccessMessage("Stato aggiunto con successo!");
-      }
-      await getStatusData();
-      closeAddDialog();
-      setSuccessModalOpen(true);
-    } catch (err) {
-      console.error("Errore salvataggio:", err);
-      alert("Errore durante il salvataggio.");
-    }
-  };
-
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    id: string | number
+  const filterFunction = (
+    items: DeviceStatus[],
+    criteria: { id: string; descrizione: string }
   ) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-    setMenuStatusId(typeof id === "string" ? parseInt(id) : id);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuStatusId(null);
-  };
-
-  const handleEdit = (status: DeviceStatus) => {
-    setEditMode(true);
-    setSelectedId(status.id);
-    setNewStatus({
-      id: status.codice,
-      descrizione: status.descrizione,
-      alias: status.alias,
-    });
-    setOpenAddDialog(true);
-    handleMenuClose();
-  };
-
-  const handleDeleteClick = (id: number) => {
-    setStatusToDelete(id);
-    setDeleteModalOpen(true);
-    handleMenuClose();
-  };
-
-  const handleMenuAction = (action: "edit" | "delete") => {
-    const status = allStatuses.find((s) => s.id === menuStatusId);
-    if (!status) return;
-    if (action === "edit") handleEdit(status);
-    else if (action === "delete") handleDeleteClick(status.id);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!statusToDelete) return;
-    setDeleting(true);
-    try {
-      await axios.delete(
-        API.deviceStatuses.delete.replace(":id", String(statusToDelete))
+    return items.filter((i) => {
+      return (
+        (!criteria.id || i.id.toString().includes(criteria.id)) &&
+        (!criteria.descrizione ||
+          i.descrizione
+            .toLowerCase()
+            .includes(criteria.descrizione.toLowerCase()))
       );
-      await getStatusData();
-      setDeleteModalOpen(false);
-      setStatusToDelete(null);
-      setSuccessMessage("Stato eliminato con successo!");
-      setSuccessModalOpen(true);
-    } catch (error) {
-      console.error("Errore nella cancellazione:", error);
-      alert("Errore durante l'eliminazione.");
-    } finally {
-      setDeleting(false);
-    }
+    });
   };
+
+  const {
+    searchCriteria,
+    setSearchCriteria,
+    filteredItems,
+    loading,
+    isFiltered,
+    openAddDialog,
+    openDialog,
+    closeDialog,
+    page,
+    rowsPerPage,
+    setPage,
+    setRowsPerPage,
+    handleEdit,        
+    handleDelete,      
+    editMode,
+    currentItem,
+    setCurrentItem,
+    saveItem: handleSaveItem,
+    deleteModalOpen,
+    setDeleteModalOpen,
+    confirmDelete: handleConfirmDelete,
+    successModalOpen,
+    setSuccessModalOpen,
+    successMessage,
+  } = crud;
 
   return (
     <section
@@ -232,7 +79,7 @@ function DeviceStatusComponent() {
     >
       <GenericSearchHeader
         title="Cerca Stati"
-        onAddNew={openAddDialogFn}
+        onAddNew={openAddDialog}
         addButtonLabel="Aggiungi Stato"
       />
 
@@ -259,8 +106,8 @@ function DeviceStatusComponent() {
             minWidth: 120,
           },
         ]}
-        onSearch={applySearch}
-        onClear={clearSearch}
+        onSearch={() => crud.applySearch(filterFunction)}
+        onClear={() => crud.clearSearch({ id: "",alias:"", descrizione: "" })}
       />
 
       {loading && (
@@ -271,7 +118,7 @@ function DeviceStatusComponent() {
           </Typography>
         </Box>
       )}
-    {/* Messaggio iniziale */}
+      {/* Messaggio iniziale */}
       {!isFiltered && !loading && (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
           <Typography variant="body1">
@@ -280,7 +127,7 @@ function DeviceStatusComponent() {
         </Box>
       )}
       <GenericTable<DeviceStatus>
-        data={displayStatuses}
+        data={filteredItems}
         columns={[
           { key: "codice", label: "ID", width: "25%" },
           { key: "descrizione", label: "Descrizione", width: "45%" },
@@ -288,56 +135,41 @@ function DeviceStatusComponent() {
           { key: "actions", label: "Azioni", width: "15%", align: "center" },
         ]}
         page={page}
-        rowsPerPage={ROWS_PER_PAGE}
+        rowsPerPage={rowsPerPage}
         onPageChange={setPage}
-        onMenuClick={handleMenuClick}
-        showList={showList && !loading}
+        onRowsPerPageChange={setRowsPerPage}
+        onEdit={handleEdit}           
+        onDelete={handleDelete}     
+        showList={isFiltered && !loading}
         loading={loading}
-        emptyMessage="Nessun stato trovato."
+        emptyMessage="Nessuno stato trovato."
         isFiltered={isFiltered}
-        totalCount={displayStatuses.length}
+        totalCount={filteredItems.length}
         itemName="stato"
       />
 
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
-        }}
-      >
-        <MenuItem onClick={() => handleMenuAction("edit")}>Modifica</MenuItem>
-        <MenuItem
-          onClick={() => handleMenuAction("delete")}
-          sx={{ color: "error.main" }}
-        >
-          Elimina
-        </MenuItem>
-      </Menu>
-
       <GenericFormDialog
-        open={openAddDialog}
-        onClose={closeAddDialog}
+        open={openDialog}
+        onClose={closeDialog}
         title={editMode ? "Modifica Stato" : "Aggiungi Nuovo Stato"}
         fields={[
           {
             label: "ID",
-            value: newStatus.id,
-            onChange: (v) => setNewStatus({ ...newStatus, id: v }),
+            value: currentItem.id,
+            onChange: (v) =>   setCurrentItem({ ...currentItem, id: Number(v) || 0 }),
           },
           {
             label: "Descrizione",
-            value: newStatus.descrizione,
-            onChange: (v) => setNewStatus({ ...newStatus, descrizione: v }),
+            value: currentItem.descrizione,
+            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
           },
           {
             label: "Alias",
-            value: newStatus.alias,
-            onChange: (v) => setNewStatus({ ...newStatus, alias: v }),
+            value: currentItem.alias,
+            onChange: (v) => setCurrentItem({ ...currentItem, alias: v }),
           },
         ]}
-        onSave={handleSave}
+        onSave={handleSaveItem}
         editMode={editMode}
       />
 
@@ -345,7 +177,7 @@ function DeviceStatusComponent() {
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        deleting={deleting}
+        deleting={loading}
         itemName="stato"
       />
 

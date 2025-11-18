@@ -1,12 +1,4 @@
-import React, { useState, useEffect } from "react";
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Menu,
-  MenuItem,
-} from "@mui/material";
-import axios from "axios";
+import {Box,CircularProgress,Typography} from "@mui/material";
 
 import { DeleteConfirmModal } from "../generics-components/DeleteModal";
 import { GenericFormDialog } from "../generics-components/GenericFormDialog";
@@ -15,201 +7,73 @@ import { GenericSearchFilters } from "../generics-components/GenericSearchFilter
 import { GenericTable } from "../generics-components/GenericTable";
 import { SuccessModal } from "../generics-components/SuccessModal";
 
-import "../../theme/default/MenuGestioneComponents.css";
+
 import "../../theme/default/InputFields.css";
 
 import { API } from "../../mock/mock/api/endpoints";
 import type { MobileProvider } from "../../types/types";
+import { useGenericCrud } from "../../hooks/useGenericCrud";
 
 function MobileProvidersComponent() {
-  const [allProviders, setAllProviders] = useState<MobileProvider[]>([]);
-  const [filteredProviders, setFilteredProviders] = useState<MobileProvider[]>(
-    []
-  );
-  const [loading, setLoading] = useState(false);
-
-  const [searchCriteria, setSearchCriteria] = useState({
-    id: "",
-    codice: "",
-    descrizione: "",
+  const crud = useGenericCrud<
+    MobileProvider,
+    { id: string; descrizione: string }
+  >({
+    endpoints: {
+      list: API.mobileProviders.list,
+      create: API.mobileProviders.create,
+      update: API.mobileProviders.update,
+      delete: API.mobileProviders.delete,
+    },
+    itemName: "provider",
+    createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
+    getItemId: (item) => item.id,
+    validateItem: (item) => {
+      if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
+      return null;
+    },
   });
-
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [editMode, setEditMode] = useState(false);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [newProvider, setNewProvider] = useState({
-    id: "",
-    codice: "",
-    descrizione: "",
-  });
-
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [menuProviderId, setMenuProviderId] = useState<number | null>(null);
-
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [providerToDelete, setProviderToDelete] = useState<number | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-
-  const [isFiltered, setIsFiltered] = useState(false);
-
-  const getProviderData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(API.mobileProviders.list);
-      const data = res.data || [];
-      setAllProviders(data);
-      setFilteredProviders(data);
-      setIsFiltered(false);
-    } catch {
-      console.error("Errore fetch");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    getProviderData();
-  }, []);
-
-  const applySearch = () => {
-    let results = [...allProviders];
-
-    if (searchCriteria.id) {
-      results = results.filter((p) =>
-        p.id.toString().includes(searchCriteria.id.trim())
-      );
-    }
-    if (searchCriteria.codice) {
-      results = results.filter((p) =>
-        p.codice
-          .toLowerCase()
-          .includes(searchCriteria.codice.trim().toLowerCase())
-      );
-    }
-    if (searchCriteria.descrizione) {
-      results = results.filter((p) =>
-        p.descrizione
-          .toLowerCase()
-          .includes(searchCriteria.descrizione.trim().toLowerCase())
-      );
-    }
-
-    setFilteredProviders(results);
-    setIsFiltered(true);
-  };
-
-  const clearSearch = () => {
-    setSearchCriteria({ id: "", codice: "", descrizione: "" });
-    setFilteredProviders(allProviders);
-    setIsFiltered(false);
-  };
-
-  const openAddDialogFn = () => {
-    setEditMode(false);
-    setNewProvider({ id: "", codice: "", descrizione: "" });
-    setOpenAddDialog(true);
-  };
-
-  const closeAddDialog = () => {
-    setOpenAddDialog(false);
-    setEditMode(false);
-    setSelectedId(null);
-    setNewProvider({ id: "", codice: "", descrizione: "" });
-  };
-
-  const handleSave = async () => {
-    if (!newProvider.descrizione?.trim()) {
-      alert("La descrizione è obbligatoria.");
-      return;
-    }
-
-    try {
-      const payload = {
-        codice: newProvider.codice || null,
-        descrizione: newProvider.descrizione,
-      };
-
-      if (editMode && selectedId) {
-        await axios.put(
-          API.mobileProviders.update.replace(":id", String(selectedId)),
-          payload
-        );
-        setSuccessMessage("Provider modificato con successo!");
-      } else {
-        await axios.post(API.mobileProviders.create, payload);
-        setSuccessMessage("Provider aggiunto con successo!");
-      }
-
-      await getProviderData();
-      closeAddDialog();
-      setSuccessModalOpen(true);
-    } catch {
-      alert("Errore durante il salvataggio.");
-    }
-  };
-
-  const handleMenuClick = (
-    event: React.MouseEvent<HTMLButtonElement>,
-    id: string | number
+  const filterFunction = (
+    items: MobileProvider[],
+    criteria: { id: string; descrizione: string }
   ) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-    setMenuProviderId(typeof id === "string" ? parseInt(id) : id);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-    setMenuProviderId(null);
-  };
-
-  const handleEdit = (provider: MobileProvider) => {
-    setEditMode(true);
-    setSelectedId(provider.id);
-    setNewProvider({
-      id: provider.id.toString(),
-      codice: provider.codice || "",
-      descrizione: provider.descrizione,
-    });
-    setOpenAddDialog(true);
-    handleMenuClose();
-  };
-
-  const handleDeleteClick = (id: number) => {
-    setProviderToDelete(id);
-    setDeleteModalOpen(true);
-    handleMenuClose();
-  };
-
-  const handleMenuAction = (action: "edit" | "delete") => {
-    const provider = allProviders.find((p) => p.id === menuProviderId);
-    if (!provider) return;
-    if (action === "edit") {
-      handleEdit(provider);
-    } else {
-      handleDeleteClick(provider.id);
-    }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!providerToDelete) return;
-    setDeleting(true);
-    try {
-      await axios.delete(
-        API.mobileProviders.delete.replace(":id", String(providerToDelete))
+    return items.filter((i) => {
+      return (
+        (!criteria.id || i.id.toString().includes(criteria.id)) &&
+        (!criteria.descrizione ||
+          i.descrizione
+            .toLowerCase()
+            .includes(criteria.descrizione.toLowerCase()))
       );
-      await getProviderData();
-      setDeleteModalOpen(false);
-      setSuccessMessage("Provider eliminato con successo!");
-      setSuccessModalOpen(true);
-    } catch {
-      alert("Errore durante l'eliminazione.");
-    } finally {
-      setDeleting(false);
-    }
+    });
   };
+
+  const {
+    searchCriteria,
+    setSearchCriteria,
+    filteredItems,
+    loading,
+    isFiltered,
+    openAddDialog,
+    openDialog,
+    closeDialog,
+    page,
+    rowsPerPage,
+    setPage,
+    setRowsPerPage,
+    handleDelete,
+    handleEdit,
+    editMode,
+    currentItem,
+    setCurrentItem,
+    saveItem: handleSaveItem,
+    deleteModalOpen,
+    setDeleteModalOpen,
+    confirmDelete: handleConfirmDelete,
+    successModalOpen,
+    setSuccessModalOpen,
+    successMessage,
+  } = crud;
 
   return (
     <section
@@ -219,7 +83,7 @@ function MobileProvidersComponent() {
       {/* Header */}
       <GenericSearchHeader
         title="Cerca Provider Mobile"
-        onAddNew={openAddDialogFn}
+        onAddNew={openAddDialog}
         addButtonLabel="Aggiungi Nuovo Provider"
       />
 
@@ -233,13 +97,6 @@ function MobileProvidersComponent() {
             minWidth: 120,
           },
           {
-            label: "Codice",
-            value: searchCriteria.codice,
-            onChange: (v) =>
-              setSearchCriteria({ ...searchCriteria, codice: v }),
-            minWidth: 120,
-          },
-          {
             label: "Descrizione",
             value: searchCriteria.descrizione,
             onChange: (v) =>
@@ -248,8 +105,8 @@ function MobileProvidersComponent() {
             flex: 1,
           },
         ]}
-        onSearch={applySearch}
-        onClear={clearSearch}
+        onSearch={() => crud.applySearch(filterFunction)}
+        onClear={() => crud.clearSearch({ id: "", descrizione: "" })}
       />
 
       {/* Loading */}
@@ -273,67 +130,51 @@ function MobileProvidersComponent() {
 
       {/* Tabella */}
       <GenericTable<MobileProvider>
-        data={filteredProviders}
+        data={filteredItems}
         columns={[
           { key: "id", label: "ID", width: "15%" },
           { key: "descrizione", label: "Descrizione", width: "50%" },
           { key: "actions", label: "Azioni", width: "15%", align: "center" },
         ]}
-        page={1}
-        rowsPerPage={10}
-        onPageChange={() => {}}
-        onMenuClick={handleMenuClick}
+        page={page}
+        rowsPerPage={rowsPerPage}
+        onPageChange={setPage}
+        onRowsPerPageChange={setRowsPerPage}
+        onEdit={handleEdit}           
+        onDelete={handleDelete}   
         showList={isFiltered && !loading}
         loading={loading}
         emptyMessage="Nessun provider trovato."
         isFiltered={isFiltered}
-        totalCount={filteredProviders.length}
+        totalCount={filteredItems.length}
         itemName="provider"
       />
 
-      {/* Menu Azioni */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        PaperProps={{
-          sx: { borderRadius: "10px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)" },
-        }}
-      >
-        <MenuItem onClick={() => handleMenuAction("edit")}>Modifica</MenuItem>
-        <MenuItem
-          onClick={() => handleMenuAction("delete")}
-          sx={{ color: "error.main" }}
-        >
-          Elimina
-        </MenuItem>
-      </Menu>
-
       {/* Dialog Aggiungi/Modifica */}
       <GenericFormDialog
-        open={openAddDialog}
-        onClose={closeAddDialog}
+        open={openDialog}
+        onClose={closeDialog}
         title={editMode ? "Modifica Provider" : "Aggiungi Nuovo Provider"}
         fields={[
           {
             label: "ID",
-            value: newProvider.id,
+            value: currentItem.id,
             onChange: () => {},
             disabled: true,
             helperText: editMode ? "Il ID non può essere modificato" : "",
           },
           {
             label: "Codice",
-            value: newProvider.codice,
-            onChange: (v) => setNewProvider({ ...newProvider, codice: v }),
+            value: currentItem.codice,
+            onChange: (v) => setCurrentItem({ ...currentItem, codice: v }),
           },
           {
             label: "Descrizione",
-            value: newProvider.descrizione,
-            onChange: (v) => setNewProvider({ ...newProvider, descrizione: v }),
+            value: currentItem.descrizione,
+            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
           },
         ]}
-        onSave={handleSave}
+        onSave={handleSaveItem}
         editMode={editMode}
       />
 
@@ -342,7 +183,7 @@ function MobileProvidersComponent() {
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        deleting={deleting}
+        deleting={loading}
         itemName="provider"
       />
 

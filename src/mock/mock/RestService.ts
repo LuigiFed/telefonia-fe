@@ -17,6 +17,7 @@ export abstract class RestService<T extends { id: string | number }> {
   public static readonly ASSEGNATARI = `${RestService.BASE_URL}/assegnatari`;
   public static readonly DEVICE_MANAGEMENT = `${RestService.BASE_URL}/dispositivi-gestione`;
   public static readonly RIFERIMENTO = `${RestService.BASE_URL}/riferimento`;
+  public static readonly CONVENTIONS = `${RestService.BASE_URL}/conventions`;
 
   public static readonly ACTION = {
     ALL: "all",
@@ -35,6 +36,7 @@ export abstract class RestService<T extends { id: string | number }> {
     ASSEGNATARI: "assegnatari",
     DEVICE_MANAGEMENT: "deviceManagement",
     RIFERIMENTO: "riferimento",
+    CONVENTIONS: "convention",
   } as const;
 
   protected DEFAULT_DELAY = 400;

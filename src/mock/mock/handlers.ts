@@ -7,6 +7,7 @@ import { DeviceTypesService } from "./DeviceTypeService.ts";
 import { ModelsService } from "./ModelsService.ts";
 import { AssigneesService } from "./AssigneesService.ts";
 import { ServiceTypeService } from "./ServiceTypeService.ts";
+import { ConventionService } from "./ConventionService.ts";
 
 
 
@@ -19,6 +20,7 @@ const services = [
   new AssigneesService(),
   new DeviceManagementService(),
   new ServiceTypeService(),
+  new ConventionService(),
 ];
 
 export const handlers: RequestHandler[] = services.flatMap((s) => s.getHandlers());

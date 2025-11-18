@@ -52,6 +52,12 @@ export const API = {
     update: `${RestService.DEVICE_MANAGEMENT}/${ENTITY.DEVICE_MANAGEMENT}${ACTION.UPDATE}/:id` as const,
     delete: `${RestService.DEVICE_MANAGEMENT}/${ENTITY.DEVICE_MANAGEMENT}${ACTION.DELETE}/:id` as const,
   },
+  convention: {
+    list: `${RestService.CONVENTIONS}/${ACTION.ALL}` as const,
+    create: `${RestService.CONVENTIONS}/${ENTITY.CONVENTIONS}${ACTION.INSERT}` as const,
+    update: `${RestService.CONVENTIONS}/${ENTITY.CONVENTIONS}${ACTION.UPDATE}/:id` as const,
+    delete: `${RestService.CONVENTIONS}/${ENTITY.CONVENTIONS}${ACTION.DELETE}/:id` as const,
+  },
   riferimento: {
        list: `${RestService.RIFERIMENTO}/${ACTION.ALL}` as const,
   } as const,

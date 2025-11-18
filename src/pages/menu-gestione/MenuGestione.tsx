@@ -1,150 +1,58 @@
-import React, { useState, useEffect } from "react";
-import { Box, Typography, IconButton } from "@mui/material";
-import { useNavigate, Routes, Route, useLocation } from "react-router-dom";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import React from "react";
+import { Box } from "@mui/material";
+import { Routes, Route } from "react-router-dom";
 
-import DeviceTypeComponent from "../../components/menu-gestione-components/DeviceTypeComponent";
+// La Sidebar della home (quella che mi hai mandato)
 import DeviceModelsComponent from "../../components/menu-gestione-components/DeviceModelsComponent";
+import DeviceTypeComponent from "../../components/menu-gestione-components/DeviceTypeComponent";
 import DeviceStatusComponent from "../../components/menu-gestione-components/DeviceStatusComponent";
 import MobileProvidersComponent from "../../components/menu-gestione-components/MobileProvidersComponent";
 import ServiceTypeComponent from "../../components/menu-gestione-components/ServiceTypeComponent";
+import ConventionComponent from "../../components/menu-gestione-components/ConventionComponent";
 import DeviceAssignmentComponent from "../../components/DeviceAssignmentComponent";
-
-
-
-const menuItems = [
-  { title: "Modelli Dispositivi", path: "device-models" },
-  { title: "Tipi Dispositivi", path: "device-types" },
-  { title: "Stato Dispositivi", path: "device-status" },
-  { title: "Gestori Telefonia", path: "mobile-providers" },
-  {title : "Tipologie Servizio" , path : "service-type"},
-];
+import Sidebar from "../sidebar/Sidebar";
 
 const MenuGestione: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [selected, setSelected] = useState<string>("");
-
-  useEffect(() => {
-    const pathParts = location.pathname.split("/");
-    const currentPath = pathParts[pathParts.length - 1];
-    if (menuItems.some((item) => item.path === currentPath)) {
-      setSelected(currentPath);
-    }
-  }, [location]);
-
-  const handleClick = (path: string) => {
-    setSelected(path);
-    navigate(`/menu-gestione/${path}`);
-  };
-
-  const handleBack = () => {
-    navigate("/");
-  };
-
   return (
     <Box
-      sx={{
-        width: "100vw",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#f5f5f5",
-      }}
+      sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#f5f5f5" }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          backgroundColor: "var(--blue-consob-600)",
-          boxShadow: "0px 2px 8px rgba(0,0,0,0.1)",
-        }}
-      >
-        <IconButton
-          onClick={handleBack}
-          sx={{
-            marginLeft: 2,
-            color: "var(--neutro-100)",
-            "&:hover": {
-              backgroundColor: "#90caf9",
-              color: "var(--neutro-100)",
-            },
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
 
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            gap: 4,
-            flex: 1,
-          }}
-        >
-          {menuItems.map((item) => (
-            <Box
-              key={item.path}
-              onClick={() => handleClick(item.path)}
-              sx={{
-                padding: "16px 24px",
-                cursor: "pointer",
-                borderTop:
-                  selected === item.path
-                    ? "4px solid #1976d2"
-                    : "4px solid transparent",
-                transition: "border-top 0.3s",
-                "&:hover": {
-                  borderTop: "4px solid #90caf9",
-                },
-              }}
-            >
-              <Typography
-                sx={{
-                  fontWeight: selected === item.path ? 600 : 400,
-                  color: selected === item.path ? "var(--neutro-100)" : "var(--neutro-200)",
-                }}
-              >
-                {item.title}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      </Box>
+      <Sidebar />
 
       <Box
+        component="main"
         sx={{
-          flex: 1,
+          flexGrow: 1,
+          ml: "1vw",
+          mt: "var(--header-height, 120px)",
+          p: 4,
           overflow: "auto",
-          backgroundColor: "#f5f5f5",
         }}
       >
         <Routes>
           <Route
             index
             element={
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                }}
-              >
-                <Typography variant="h4" color="text.secondary">
-                  Seleziona una voce dal menu
-                </Typography>
+              <Box sx={{ textAlign: "center", mt: 8 }}>
+                <h3>Seleziona una voce dal menu gestione in alto a destra</h3>
               </Box>
             }
           />
+
           <Route path="device-models" element={<DeviceModelsComponent />} />
           <Route path="device-types" element={<DeviceTypeComponent />} />
           <Route path="device-status" element={<DeviceStatusComponent />} />
-          <Route path="mobile-providers" element={<MobileProvidersComponent />} />
-          <Route path="device-assignment" element={<DeviceAssignmentComponent />} />
-          <Route path="service-type" element={<ServiceTypeComponent/>} />
-
-        
+          <Route
+            path="mobile-providers"
+            element={<MobileProvidersComponent />}
+          />
+          <Route path="service-type" element={<ServiceTypeComponent />} />
+          <Route path="convention" element={<ConventionComponent />} />
+          <Route
+            path="device-assignment"
+            element={<DeviceAssignmentComponent />}
+          />
         </Routes>
       </Box>
     </Box>

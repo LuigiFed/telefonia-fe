@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography} from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 
 import { DeleteConfirmModal } from "../generics-components/DeleteModal";
 import { GenericFormDialog } from "../generics-components/GenericFormDialog";
@@ -7,79 +7,80 @@ import { GenericSearchFilters } from "../generics-components/GenericSearchFilter
 import { GenericTable } from "../generics-components/GenericTable";
 import { SuccessModal } from "../generics-components/SuccessModal";
 
-
 import "../../theme/default/InputFields.css";
 
 import { API } from "../../mock/mock/api/endpoints";
-import type { ServiceType } from "../../types/types";
+import type { Convention } from "../../types/types";
 import { useGenericCrud } from "../../hooks/useGenericCrud";
 
-function ServiceTypeComponent() {
-  const crud = useGenericCrud<ServiceType,{ id: string; descrizione: string }>({
-     endpoints: {
-       list: API.serviceTypes.list,
-       create: API.serviceTypes.create,
-       update: API.serviceTypes.update,
-       delete: API.serviceTypes.delete,
-     },
-     itemName: "tipo",
-     createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
-     getItemId: (item) => item.id,
-     validateItem: (item) => {
-       if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
-       return null;
-     },
-   });
-   const filterFunction = (
-     items: ServiceType[],
-     criteria: { id: string; descrizione: string }
-   ) => {
-     return items.filter((i) => {
-       return (
-         (!criteria.id || i.id.toString().includes(criteria.id)) &&
-         (!criteria.descrizione ||
-           i.descrizione
-             .toLowerCase()
-             .includes(criteria.descrizione.toLowerCase()))
-       );
-     });
-   };
- 
-   const {
-     searchCriteria,
-     setSearchCriteria,
-     filteredItems,
-     loading,
-     isFiltered,
-     openAddDialog,
-     openDialog,
-     closeDialog,
-     page,
-     rowsPerPage,
-     setPage,
-     setRowsPerPage,
-     handleEdit,        
-     handleDelete,     
-     editMode,
-     currentItem,
-     setCurrentItem,
-     saveItem: handleSaveItem,
-     deleteModalOpen,
-     setDeleteModalOpen,
-     confirmDelete: handleConfirmDelete,
-     successModalOpen,
-     setSuccessModalOpen,
-     successMessage,
-   } = crud;
+function ConventionComponent() {
+  const crud = useGenericCrud<Convention, { id: string; descrizione: string }>({
+    endpoints: {
+      list: API.convention.list,
+      create: API.convention.create,
+      update: API.convention.update,
+      delete: API.convention.delete,
+    },
+    itemName: "convention",
+    createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
+    getItemId: (item) => item.id,
+    validateItem: (item) => {
+      if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
+      return null;
+    },
+  });
+  const filterFunction = (
+    items: Convention[],
+    criteria: { id: string; descrizione: string }
+  ) => {
+    return items.filter((i) => {
+      return (
+        (!criteria.id || i.id.toString().includes(criteria.id)) &&
+        (!criteria.descrizione ||
+          i.descrizione
+            .toLowerCase()
+            .includes(criteria.descrizione.toLowerCase()))
+      );
+    });
+  };
 
+  const {
+    searchCriteria,
+    setSearchCriteria,
+    filteredItems,
+    loading,
+    isFiltered,
+    openAddDialog,
+    openDialog,
+    closeDialog,
+    page,
+    rowsPerPage,
+    setPage,
+    setRowsPerPage,
+    handleEdit,
+    handleDelete,
+    editMode,
+    currentItem,
+    setCurrentItem,
+    saveItem: handleSaveItem,
+    deleteModalOpen,
+    setDeleteModalOpen,
+    confirmDelete: handleConfirmDelete,
+    successModalOpen,
+    setSuccessModalOpen,
+    successMessage,
+  } = crud;
 
   return (
-    <section className="menu-gestione" style={{ marginLeft: 16, marginRight: 16 }}>
+    <section
+      className="menu-gestione"
+      style={{ marginLeft: 16, marginRight: 16 }}
+    >
       {/* Header */}
       <GenericSearchHeader
-        title="Cerca Tipi di Servizio"
+        title="Cerca Convenzioni"
         onAddNew={openAddDialog}
-        addButtonLabel="Aggiungi Nuovo Tipo Servizio"
+        addButtonLabel="Aggiungi convenzione"
       />
 
       {/* Filtri */}
@@ -88,13 +89,14 @@ function ServiceTypeComponent() {
           {
             label: "ID",
             value: searchCriteria.id,
-            onChange: v => setSearchCriteria({ ...searchCriteria, id: v }),
+            onChange: (v) => setSearchCriteria({ ...searchCriteria, id: v }),
             minWidth: 120,
           },
           {
             label: "Descrizione",
             value: searchCriteria.descrizione,
-            onChange: v => setSearchCriteria({ ...searchCriteria, descrizione: v }),
+            onChange: (v) =>
+              setSearchCriteria({ ...searchCriteria, descrizione: v }),
             minWidth: 200,
             flex: 1,
           },
@@ -123,7 +125,7 @@ function ServiceTypeComponent() {
       )}
 
       {/* Tabella */}
-      <GenericTable<ServiceType>
+      <GenericTable<Convention>
         data={filteredItems}
         columns={[
           { key: "id", label: "ID", width: "20%" },
@@ -134,21 +136,21 @@ function ServiceTypeComponent() {
         rowsPerPage={rowsPerPage}
         onPageChange={setPage}
         onRowsPerPageChange={setRowsPerPage}
-        onEdit={handleEdit}           
-        onDelete={handleDelete}   
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         showList={isFiltered && !loading}
         loading={loading}
-        emptyMessage="Nessun tipo servizio trovato."
+        emptyMessage="Nessuna convenzione trovata."
         isFiltered={isFiltered}
         totalCount={filteredItems.length}
-        itemName="tipo servizio"
+        itemName="convenzione"
       />
 
       {/* Dialog Aggiungi/Modifica */}
       <GenericFormDialog
         open={openDialog}
         onClose={closeDialog}
-        title={editMode ? "Modifica Tipo Servizio" : "Aggiungi Nuovo Tipo Servizio"}
+        title={editMode ? "Modifica Convenzione" : "Aggiungi nuova Convenzione"}
         fields={[
           {
             label: "ID",
@@ -160,7 +162,7 @@ function ServiceTypeComponent() {
           {
             label: "Descrizione",
             value: currentItem.descrizione,
-            onChange: v => setCurrentItem({ ...currentItem, descrizione: v }),
+            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
           },
         ]}
         onSave={handleSaveItem}
@@ -173,7 +175,7 @@ function ServiceTypeComponent() {
         onClose={() => setDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
         deleting={loading}
-        itemName="tipo servizio"
+        itemName="convenzione"
       />
 
       {/* Successo */}
@@ -186,4 +188,4 @@ function ServiceTypeComponent() {
   );
 }
 
-export default ServiceTypeComponent;
+export default ConventionComponent;

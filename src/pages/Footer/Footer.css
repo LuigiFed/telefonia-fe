@@ -1,0 +1,31 @@
+
+footer {
+  position: relative;
+  width: 100%;
+  background-color: white;
+  bottom: 0;
+  height: 136px;
+  margin-top: 2rem;
+  z-index: 1;
+}
+
+footer img {
+  max-width: 100%;
+  height: auto;
+}
+
+.link {
+  text-decoration: none;
+  color: #17324d;
+}
+
+.footer-start {
+  height: 80px;
+  border-width: 1.5px 0px;
+  border-color: var(--neutro-200);
+  border-style: solid;
+}
+
+.footer-end {
+  height: 56px;
+}
