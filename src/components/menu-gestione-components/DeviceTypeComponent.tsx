@@ -14,7 +14,7 @@ import type { DeviceType } from "../../types/types";
 import { useGenericCrud } from "../../hooks/useGenericCrud";
 
 function DeviceTypeComponent() {
-  const crud = useGenericCrud<DeviceType, { id: string; descrizione: string }>({
+  const crud = useGenericCrud<DeviceType, { id: string; desTipoDispositivo: string }>({
     endpoints: {
       list: API.deviceTypes.list,
       create: API.deviceTypes.create,
@@ -22,24 +22,24 @@ function DeviceTypeComponent() {
       delete: API.deviceTypes.delete,
     },
     itemName: "stato",
-    createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
+    createEmptyItem: () => ({ id: 0, codice: "", desTipoDispositivo: "" }),
     getItemId: (item) => item.id,
     validateItem: (item) => {
-      if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
+      if (!item.desTipoDispositivo.trim()) return "La desTipoDispositivo è obbligatoria.";
       return null;
     },
   });
   const filterFunction = (
     items: DeviceType[],
-    criteria: { id: string; descrizione: string }
+    criteria: { id: string; desTipoDispositivo: string }
   ) => {
     return items.filter((i) => {
       return (
         (!criteria.id || i.id.toString().includes(criteria.id)) &&
-        (!criteria.descrizione ||
-          i.descrizione
+        (!criteria.desTipoDispositivo ||
+          (i.desTipoDispositivo ?? "")
             .toLowerCase()
-            .includes(criteria.descrizione.toLowerCase()))
+            .includes(criteria.desTipoDispositivo.toLowerCase()))
       );
     });
   };
@@ -62,7 +62,6 @@ function DeviceTypeComponent() {
     editMode,
     currentItem,
     setCurrentItem,
-    saveItem: handleSaveItem,
     deleteModalOpen,
     setDeleteModalOpen,
     confirmDelete: handleConfirmDelete,
@@ -70,6 +69,30 @@ function DeviceTypeComponent() {
     setSuccessModalOpen,
     successMessage,
   } = crud;
+  const saveItem = async (): Promise<void> => {
+  if (!currentItem) return;
+
+  const payload = {
+    tipoDispositivoId: currentItem.id, 
+    desTipoDispositivo: currentItem.desTipoDispositivo ?? "",
+  };
+
+  const url = editMode
+    ? API.deviceTypes.update.replace(":id", currentItem.id.toString())
+    : API.deviceTypes.create;
+
+  const method = editMode ? "PUT" : "POST";
+
+  await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  closeDialog();
+  crud.refreshItems();
+};
+
 
   return (
     <section
@@ -91,18 +114,19 @@ function DeviceTypeComponent() {
             value: searchCriteria.id,
             onChange: (v) => setSearchCriteria({ ...searchCriteria, id: v }),
             minWidth: 120,
+
           },
           {
-            label: "Descrizione",
-            value: searchCriteria.descrizione,
+            label: "Descrizione Tipo Dispositivo",
+            value: searchCriteria.desTipoDispositivo,
             onChange: (v) =>
-              setSearchCriteria({ ...searchCriteria, descrizione: v }),
+              setSearchCriteria({ ...searchCriteria, desTipoDispositivo: v }),
             minWidth: 200,
             flex: 1,
           },
         ]}
         onSearch={() => crud.applySearch(filterFunction)}
-        onClear={() => crud.clearSearch({ id: "", descrizione: "" })}
+        onClear={() => crud.clearSearch({ id: "", desTipoDispositivo: "" })}
       />
 
       {/* Loading */}
@@ -115,20 +139,20 @@ function DeviceTypeComponent() {
         </Box>
       )}
       {/* Messaggio iniziale */}
-      {!isFiltered && !loading && (
+      {/* {!isFiltered && !loading && (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
           <Typography variant="body1">
             Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
           </Typography>
         </Box>
-      )}
+      )} */}
 
       {/* Tabella */}
       <GenericTable<DeviceType>
         data={filteredItems}
         columns={[
           { key: "id", label: "ID", width: "20%" },
-          { key: "descrizione", label: "Descrizione", width: "65%" },
+          { key: "desTipoDispositivo", label: "Descrizione Tipo Dispositivo", width: "65%", render: (row) => row.desTipoDispositivo ?? "" },
           { key: "actions", label: "Azioni", width: "15%", align: "center" },
         ]}
         page={page}
@@ -137,7 +161,7 @@ function DeviceTypeComponent() {
         onRowsPerPageChange={setRowsPerPage}
         onEdit={handleEdit}           
         onDelete={handleDelete}   
-        showList={isFiltered && !loading}
+        showList={true}
         loading={loading}
         emptyMessage="Nessun tipo trovato."
         isFiltered={isFiltered}
@@ -156,14 +180,15 @@ function DeviceTypeComponent() {
             value: currentItem.id,
             onChange: (v) =>
               setCurrentItem({ ...currentItem, id: Number(v) || 0 }),
+            disabled: true,
           },
           {
-            label: "Descrizione",
-            value: currentItem.descrizione,
-            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
+            label: "Descrizione Dispositivo",
+            value: currentItem.desTipoDispositivo,
+            onChange: (v) => setCurrentItem({ ...currentItem, desTipoDispositivo: v }),
           },
         ]}
-        onSave={handleSaveItem}
+        onSave={saveItem}
         editMode={editMode}
       />
 

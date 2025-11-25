@@ -111,13 +111,13 @@ function DeviceModelsComponent() {
       )}
 
        {/* Messaggio iniziale */}
-      {!isFiltered && !loading && (
+      {/* {isFiltered && !loading && (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
           <Typography variant="body1">
             Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
           </Typography>
         </Box>
-      )}
+      )} */}
 
     
       <GenericTable<DeviceModel>
@@ -133,7 +133,7 @@ function DeviceModelsComponent() {
         onRowsPerPageChange={setRowsPerPage}
         onEdit={handleEdit}
         onDelete={handleDelete} 
-        showList={isFiltered && !loading}
+        showList={true}
         loading={loading}
         emptyMessage="Nessun modello trovato con i criteri inseriti."
         isFiltered={isFiltered}

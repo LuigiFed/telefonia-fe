@@ -12,38 +12,38 @@ export const devices: DeviceModel[] = [
 ];
 
 export const deviceTypes: DeviceType[] = [
-  { id: 1, codice: "1", descrizione: "Smartphone" },
-  { id: 2, codice: "2", descrizione: "Tablet" },
-  { id: 3, codice: "3", descrizione: "PC" },
-  { id: 4, codice: "4", descrizione: "Laptop" },
-  { id: 5, codice: "5", descrizione: "Monitor" },
-  { id: 6, codice: "6", descrizione: "Router" },
-  { id: 7, codice: "7", descrizione: "Switch" },
-  { id: 8, codice: "8", descrizione: "Modem" },
-  { id: 9, codice: "9", descrizione: "Scanner" }  
+  { id: 1, desTipoDispositivo: "Smartphone" },
+  { id: 2, desTipoDispositivo: "Tablet" },
+  { id: 3, desTipoDispositivo: "PC" },
+  { id: 4, desTipoDispositivo: "Laptop" },
+  { id: 5, desTipoDispositivo: "Monitor" },
+  { id: 6, desTipoDispositivo: "Router" },
+  { id: 7, desTipoDispositivo: "Switch" },
+  { id: 8, desTipoDispositivo: "Modem" },
+  { id: 9, desTipoDispositivo: "Scanner" }  
 
 ];
 
 export const mobileProviders: MobileProvider[] = [
-  { id: 1, codice: "1", descrizione: "TIM" },
-  { id: 2, codice: "2", descrizione: "Vodafone" },
-  { id: 3, codice: "3", descrizione: "WindTre" },
-  { id: 4, codice: "4", descrizione: "Iliad" },
-  { id: 5, codice: "5", descrizione: "Fastweb" },
-  { id: 6, codice: "6", descrizione: "Movistar" },
+  { id: 1,desGestore: "TIM" },
+  { id: 2,desGestore: "Vodafone" },
+  { id: 3,desGestore: "WindTre" },
+  { id: 4,desGestore: "Iliad" },
+  { id: 5,desGestore: "Fastweb" },
+  { id: 6,desGestore: "Movistar" },
 
 ];
 
 export const deviceStatuses: DeviceStatus[] = [
-  { id: 1, codice: "1", descrizione: "Assegnato", alias: "AS" },
-  { id: 2, codice: "2", descrizione: "Riconsegnato", alias: "RI" },
-  { id: 3, codice: "3", descrizione: "Smarrito/Rubato", alias: "SR" },
-  { id: 4, codice: "4", descrizione: "In Riparazione", alias: "IR" },
-  { id: 5, codice: "5", descrizione: "Fuori Uso", alias: "FU" },
-  { id: 6, codice: "6", descrizione: "Sostituzione", alias: "SO" },
-  { id: 7, codice: "7", descrizione: "Portabilità > Utenza Personale", alias: "PUP" },
-  { id: 8, codice: "8", descrizione: "Portabilità > Altra Amministrazione", alias: "PAM" },
-  { id: 9, codice: "9", descrizione: "Cessato (riconsegnato al fornitore)", alias: "CRF" },
+  { id: 1, desStato: "Assegnato", alias: "AS" },
+  { id: 2, desStato: "Riconsegnato", alias: "RI" },
+  { id: 3, desStato: "Smarrito/Rubato", alias: "SR" },
+  { id: 4, desStato: "In Riparazione", alias: "IR" },
+  { id: 5, desStato: "Fuori Uso", alias: "FU" },
+  { id: 6, desStato: "Sostituzione", alias: "SO" },
+  { id: 7, desStato: "Portabilità > Utenza Personale", alias: "PUP" },
+  { id: 8, desStato: "Portabilità > Altra Amministrazione", alias: "PAM" },
+  { id: 9, desStato: "Cessato (riconsegnato al fornitore)", alias: "CRF" },
 ];
 
 export const assegnatari: Assegnatario[] = [
@@ -157,6 +157,7 @@ export const deviceManagement: DeviceManagement[] = [
     fornitore: "TIM",
     gestore: "Mario Rossi",
     servizio: "Fonia e dati",
+    convenzione: "CONV_1002",
     note: "Telefono principale",
     inizio: "2024-03-15",
     fine: "",
@@ -175,6 +176,7 @@ export const deviceManagement: DeviceManagement[] = [
     fornitore: "Vodafone",
     gestore: "Luca Bianchi",
     servizio: "Accesso Internet",
+    convenzione: "CONV_1001",
     note: "Riconsegnato per cambio modello",
     inizio: "2023-11-10",
     fine: "2024-05-22",
@@ -184,17 +186,16 @@ export const deviceManagement: DeviceManagement[] = [
 ];
 
 export const serviceType: ServiceType[] = [
-  { id: 1, descrizione: "Fonia e dati" },
-  { id: 2, descrizione: "Accesso Internet" },
-  { id: 3, descrizione: "Accesso WiFi" },
+  { id: 1,codTipoServizio:"F", descrizione: "Fonia" },
+  { id: 2,codTipoServizio:"D", descrizione: "Dati" },
+  { id: 3,codTipoServizio:"FD", descrizione: "Fonia e dati" },
 ];
 
 export const convention : Convention[] = [
-  { id: 1, descrizione: "Convenzione A" },
-  { id: 2, descrizione: "Convenzione B" },
-  { id: 3, descrizione: "Convenzione C" },
-  { id: 4, descrizione: "Convenzione D" },
-  { id: 5, descrizione: "Convenzione E" },
-  { id: 6, descrizione: "Convenzione F" },
-  { id: 7, descrizione: "Convenzione G" },
+  { id: 1, convenzione: "CONV_1001", descrizioneConvenzione: "Convenzione per dispositivi mobili" },
+  { id: 2, convenzione: "CONV_1002", descrizioneConvenzione: "Convenzione per accessori IT" },
+  { id: 3, convenzione: "CONV_1003", descrizioneConvenzione: "Convenzione per servizi di rete" },
+  { id: 4, convenzione: "CONV_1004", descrizioneConvenzione: "Convenzione per software aziendale" },
+  { id: 5, convenzione: "CONV_1005", descrizioneConvenzione: "Convenzione per hardware IT" },
+  { id: 6, convenzione: "CONV_1006", descrizioneConvenzione: "Convenzione per servizi cloud" },
 ];

@@ -2,7 +2,6 @@ import React from "react";
 import { Box } from "@mui/material";
 import { Routes, Route } from "react-router-dom";
 
-// La Sidebar della home (quella che mi hai mandato)
 import DeviceModelsComponent from "../../components/menu-gestione-components/DeviceModelsComponent";
 import DeviceTypeComponent from "../../components/menu-gestione-components/DeviceTypeComponent";
 import DeviceStatusComponent from "../../components/menu-gestione-components/DeviceStatusComponent";
@@ -25,7 +24,7 @@ const MenuGestione: React.FC = () => {
         sx={{
           flexGrow: 1,
           ml: "1vw",
-          mt: "var(--header-height, 120px)",
+          mt: "var(--header-height, 32px)",
           p: 4,
           overflow: "auto",
         }}

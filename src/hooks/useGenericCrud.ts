@@ -14,8 +14,11 @@ interface CRUDConfig<T> {
   validateItem?: (item: T, editMode: boolean) => string | null;
 }
 
-export function useGenericCrud<T, S = Record<string, string>>(config: CRUDConfig<T>) {
-  const { endpoints, itemName, createEmptyItem, getItemId, validateItem } = config;
+export function useGenericCrud<T, S = Record<string, string>>(
+  config: CRUDConfig<T>
+) {
+  const { endpoints, itemName, createEmptyItem, getItemId, validateItem } =
+    config;
 
   // Stati dati
   const [allItems, setAllItems] = useState<T[]>([]);
@@ -32,7 +35,7 @@ export function useGenericCrud<T, S = Record<string, string>>(config: CRUDConfig
   const [currentItem, setCurrentItem] = useState<T>(createEmptyItem());
 
   // Paginazione
-  const [page, setPage] = useState(1);          
+  const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Eliminazione
@@ -98,8 +101,9 @@ export function useGenericCrud<T, S = Record<string, string>>(config: CRUDConfig
     setCurrentItem(createEmptyItem());
   }, [createEmptyItem]);
 
-  // Salvataggio
   const saveItem = useCallback(async () => {
+    if (!currentItem) return;
+
     if (validateItem) {
       const error = validateItem(currentItem, editMode);
       if (error) {
@@ -111,35 +115,48 @@ export function useGenericCrud<T, S = Record<string, string>>(config: CRUDConfig
     try {
       if (editMode) {
         const id = getItemId(currentItem);
-        await axios.put(endpoints.update.replace(":id", String(id)), currentItem);
+        const url = endpoints.update!.replace(":id", String(id));
+        await axios.put(url, currentItem);
+
         setSuccessMessage(`${itemName} modificato con successo!`);
       } else {
         await axios.post(endpoints.create, currentItem);
+
         setSuccessMessage(`${itemName} aggiunto con successo!`);
       }
+
       await fetchItems();
       closeDialog();
       setSuccessModalOpen(true);
     } catch (error) {
       console.error("Errore salvataggio:", error);
-      alert("Errore durante il salvataggio.");
+      alert("Errore durante il salvataggio. Verifica i dati e riprova.");
     }
-  }, [currentItem, editMode, endpoints, itemName, validateItem, getItemId, fetchItems, closeDialog]);
+  }, [
+    currentItem,
+    editMode,
+    validateItem,
+    getItemId,
+    endpoints,
+    itemName,
+    fetchItems,
+    closeDialog,
+  ]);
 
- const handleEdit = useCallback(
-  (item: T) => {
+  const handleEdit = useCallback((item: T) => {
     setCurrentItem(item);
     setEditMode(true);
     setOpenDialog(true);
-  },
-  []
-);
+  }, []);
 
-const handleDelete = useCallback((item: T) => {
-  const id = getItemId(item);
-  setItemToDelete(id);
-  setDeleteModalOpen(true);
-}, [getItemId]);
+  const handleDelete = useCallback(
+    (item: T) => {
+      const id = getItemId(item);
+      setItemToDelete(id);
+      setDeleteModalOpen(true);
+    },
+    [getItemId]
+  );
 
   // Conferma eliminazione
   const confirmDelete = useCallback(async () => {
@@ -173,7 +190,7 @@ const handleDelete = useCallback((item: T) => {
     applySearch,
     clearSearch,
 
-    // Paginazione 
+    // Paginazione
     page,
     setPage,
     rowsPerPage,
@@ -209,4 +226,4 @@ const handleDelete = useCallback((item: T) => {
   };
 }
 
-export default useGenericCrud; 
+export default useGenericCrud;

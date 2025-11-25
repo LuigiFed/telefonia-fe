@@ -14,7 +14,9 @@ import type { Convention } from "../../types/types";
 import { useGenericCrud } from "../../hooks/useGenericCrud";
 
 function ConventionComponent() {
-  const crud = useGenericCrud<Convention, { id: string; descrizione: string }>({
+  const crud = useGenericCrud<Convention, {
+    convenzione: string; id: string; descrizioneConvenzione: string }
+    >({
     endpoints: {
       list: API.convention.list,
       create: API.convention.create,
@@ -22,27 +24,28 @@ function ConventionComponent() {
       delete: API.convention.delete,
     },
     itemName: "convention",
-    createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
+    createEmptyItem: () => ({ id: 0, convenzione: "", descrizioneConvenzione: "" }),
     getItemId: (item) => item.id,
     validateItem: (item) => {
-      if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
+      if (!item.descrizioneConvenzione.trim()) return "La descrizioneConvenzione è obbligatoria.";
       return null;
     },
   });
-  const filterFunction = (
-    items: Convention[],
-    criteria: { id: string; descrizione: string }
-  ) => {
-    return items.filter((i) => {
-      return (
-        (!criteria.id || i.id.toString().includes(criteria.id)) &&
-        (!criteria.descrizione ||
-          i.descrizione
-            .toLowerCase()
-            .includes(criteria.descrizione.toLowerCase()))
-      );
-    });
-  };
+const filterFunction = (
+  items: Convention[],
+  criteria: { id: string; convenzione: string; descrizioneConvenzione: string }
+) => {
+  return items.filter((i) => {
+    return (
+      (!criteria.convenzione ||
+        i.convenzione.toLowerCase().includes(criteria.convenzione.toLowerCase())) &&
+      (!criteria.descrizioneConvenzione ||
+        i.descrizioneConvenzione
+          .toLowerCase()
+          .includes(criteria.descrizioneConvenzione.toLowerCase()))
+    );
+  });
+};
 
   const {
     searchCriteria,
@@ -87,22 +90,22 @@ function ConventionComponent() {
       <GenericSearchFilters
         fields={[
           {
-            label: "ID",
-            value: searchCriteria.id,
-            onChange: (v) => setSearchCriteria({ ...searchCriteria, id: v }),
+            label: "Convenzione",
+            value: searchCriteria.convenzione,
+            onChange: (v) => setSearchCriteria({ ...searchCriteria, convenzione: v }),
             minWidth: 120,
           },
           {
-            label: "Descrizione",
-            value: searchCriteria.descrizione,
+            label: "Descrizione Convenzione",
+            value: searchCriteria.descrizioneConvenzione,
             onChange: (v) =>
-              setSearchCriteria({ ...searchCriteria, descrizione: v }),
+              setSearchCriteria({ ...searchCriteria, descrizioneConvenzione: v }),
             minWidth: 200,
             flex: 1,
           },
         ]}
         onSearch={() => crud.applySearch(filterFunction)}
-        onClear={() => crud.clearSearch({ id: "", descrizione: "" })}
+        onClear={() => crud.clearSearch({ convenzione: "",id: "",descrizioneConvenzione: "" })}
       />
 
       {/* Loading */}
@@ -116,20 +119,20 @@ function ConventionComponent() {
       )}
 
       {/* Messaggio iniziale */}
-      {!isFiltered && !loading && (
+      {/* {!isFiltered && !loading && (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
           <Typography variant="body1">
             Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
           </Typography>
         </Box>
-      )}
+      )} */}
 
       {/* Tabella */}
       <GenericTable<Convention>
         data={filteredItems}
         columns={[
-          { key: "id", label: "ID", width: "20%" },
-          { key: "descrizione", label: "Descrizione", width: "65%" },
+          { key: "convenzione", label: "Convenzione", width: "20%" },
+          { key: "descrizioneConvenzione", label: "Descrizione Convenzione", width: "65%" },
           { key: "actions", label: "Azioni", width: "15%", align: "center" },
         ]}
         page={page}
@@ -138,7 +141,7 @@ function ConventionComponent() {
         onRowsPerPageChange={setRowsPerPage}
         onEdit={handleEdit}
         onDelete={handleDelete}
-        showList={isFiltered && !loading}
+        showList={true}
         loading={loading}
         emptyMessage="Nessuna convenzione trovata."
         isFiltered={isFiltered}
@@ -153,16 +156,15 @@ function ConventionComponent() {
         title={editMode ? "Modifica Convenzione" : "Aggiungi nuova Convenzione"}
         fields={[
           {
-            label: "ID",
-            value: currentItem.id,
-            onChange: () => {},
-            disabled: true,
-            helperText: editMode ? "Il ID non può essere modificato" : "",
+            label: "Convenzione",
+            value: currentItem.convenzione,
+            onChange: (v) => setCurrentItem({ ...currentItem, convenzione: v }),
           },
           {
-            label: "Descrizione",
-            value: currentItem.descrizione,
-            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
+            label: "Descrizione Convenzione",
+            value: currentItem.descrizioneConvenzione,
+            onChange: (v) =>
+              setCurrentItem({ ...currentItem, descrizioneConvenzione: v }),
           },
         ]}
         onSave={handleSaveItem}

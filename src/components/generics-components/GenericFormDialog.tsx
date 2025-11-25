@@ -1,13 +1,4 @@
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  TextField,
-  Typography,
-} from "@mui/material";
+import { Dialog,DialogTitle, DialogContent,DialogActions,Button,Box,TextField,Typography} from "@mui/material";
 
 interface FormField {
   label: string;
@@ -28,31 +19,15 @@ interface GenericFormDialogProps {
   editMode: boolean;
 }
 
-export const GenericFormDialog = ({
-  open,
-  onClose,
-  title,
-  fields,
-  onSave,
-}: GenericFormDialogProps) => (
+export const GenericFormDialog = ({open,onClose,title,fields,onSave,}: GenericFormDialogProps) => (
   <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-    <DialogTitle  className="row blue-band align-items-center"
-      sx={{
-        backgroundColor: "var(--blue-consob-600)",
-        color: "white",
-        textAlign: "center",
-      }}
-    >
+    <DialogTitle  className="row blue-band align-items-center" sx={{ backgroundColor: "var(--blue-consob-600)", color: "white", textAlign: "center"}}>
       {title}
     </DialogTitle>
     <DialogContent sx={{ pt: 4, m: 2 }}>
       {fields.map((field, index) => (
         <Box key={index} sx={{ mb: index < fields.length - 1 ? 2 : 0 }}>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ mb: 0.5, display: "block" }}
-          >
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: "block" }}>
             {field.label} *
           </Typography>
           <TextField

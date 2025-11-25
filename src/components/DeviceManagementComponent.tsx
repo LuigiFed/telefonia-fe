@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PrintIcon from "@mui/icons-material/Print";
 import {
   Paper,
   CircularProgress,
@@ -24,6 +25,8 @@ import {
   FormControl,
   Tooltip,
   IconButton,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -36,8 +39,12 @@ import type {
   DeviceType,
   MobileProvider,
   DeviceStatus,
+  Convention,
+  DeviceExportRequest,
 } from "../types/types";
 import { API } from "../mock/mock/api/endpoints";
+import { DeviceExportService } from "../mock/mock/DeviceExportSercive";
+import { serviceType } from "../mock/mock/data";
 
 function DeviceManagementComponent() {
   const [allDevices, setAllDevices] = useState<DeviceManagement[]>([]);
@@ -61,6 +68,7 @@ function DeviceManagementComponent() {
     fornitore: "",
     gestore: "",
     servizio: "",
+    convenzione: "",
     note: "",
     inizio: "",
     fine: "",
@@ -72,6 +80,7 @@ function DeviceManagementComponent() {
   const [deviceModels, setDeviceModels] = useState<DeviceModel[]>([]);
   const [mobileProviders, setMobileProviders] = useState<MobileProvider[]>([]);
   const [deviceStatuses, setDeviceStatuses] = useState<DeviceStatus[]>([]);
+  const [conventions, setConventions] = useState<Convention[]>([]);
 
   // Paginazione
   const [page, setPage] = useState(1);
@@ -111,14 +120,21 @@ function DeviceManagementComponent() {
   async function getDeviceData() {
     setLoading(true);
     try {
-      const [devicesRes, typesRes, modelsRes, providersRes, statusesRes] =
-        await Promise.all([
-          axios.get(API.deviceManagement.list),
-          axios.get<DeviceType[]>(API.deviceTypes.list),
-          axios.get<DeviceModel[]>(API.deviceModels.list),
-          axios.get<MobileProvider[]>(API.mobileProviders.list),
-          axios.get<DeviceStatus[]>(API.deviceStatuses.list),
-        ]);
+      const [
+        devicesRes,
+        typesRes,
+        modelsRes,
+        providersRes,
+        statusesRes,
+        conventionsRes,
+      ] = await Promise.all([
+        axios.get(API.deviceManagement.list),
+        axios.get<DeviceType[]>(API.deviceTypes.list),
+        axios.get<DeviceModel[]>(API.deviceModels.list),
+        axios.get<MobileProvider[]>(API.mobileProviders.list),
+        axios.get<DeviceStatus[]>(API.deviceStatuses.list),
+        axios.get<Convention[]>(API.convention.list),
+      ]);
 
       const devices = Array.isArray(devicesRes.data) ? devicesRes.data : [];
       setAllDevices(devices);
@@ -129,6 +145,7 @@ function DeviceManagementComponent() {
       setDeviceModels(modelsRes.data);
       setMobileProviders(providersRes.data);
       setDeviceStatuses(statusesRes.data);
+      setConventions(conventionsRes.data);
     } catch (error) {
       console.error("Errore nel caricamento dati:", error);
       setAllDevices([]);
@@ -138,6 +155,12 @@ function DeviceManagementComponent() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!loading && allDevices.length > 0 && !showList) {
+      setShowList(true);
+    }
+  }, [loading, allDevices.length, showList]);
 
   useEffect(() => {
     getDeviceData();
@@ -191,6 +214,7 @@ function DeviceManagementComponent() {
       fornitore: "",
       gestore: "",
       servizio: "",
+      convenzione: "",
       note: "",
       inizio: "",
       fine: "",
@@ -332,6 +356,20 @@ function DeviceManagementComponent() {
     setPage(1);
   };
 
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
+  const [exportFilters, setExportFilters] = useState<DeviceExportRequest>({
+    ddtInizio: "",
+    ddtFine: "",
+    tipoDispositivoId: undefined,
+    modelloId: undefined,
+    gestoreId: undefined,
+    statoId: undefined,
+    convenzioneId: "",
+    codTipoServizio: "",
+    codSede: "",
+    includeOpen: true,
+  });
   return (
     <section className="menu-gestione" style={{ margin: "16px" }}>
       {/* HEADER */}
@@ -347,23 +385,46 @@ function DeviceManagementComponent() {
         <Typography variant="h6" className="title">
           Gestione Dispositivi
         </Typography>
-        <Button
-          variant="contained"
-          onClick={() => {
-            setEditMode(false);
-            closeAddDialog();
-            setOpenAddDialog(true);
-          }}
-          sx={{
-            backgroundColor: "var(--blue-consob-600)",
-            "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-            borderRadius: 1,
-            textTransform: "none",
-            fontWeight: 500,
-          }}
-        >
-          Aggiungi Nuovo Dispositivo
-        </Button>
+
+        <Box sx={{ display: "flex", gap: 2 }}>
+          {/* STAMPA */}
+          <Button
+            variant="outlined"
+            startIcon={<PrintIcon />}
+            onClick={() => setExportDialogOpen(true)}
+            sx={{
+              borderColor: "var(--blue-consob-600)",
+              color: "var(--blue-consob-600)",
+              textTransform: "none",
+              fontWeight: 500,
+              "&:hover": {
+                bgcolor: "var(--blue-consob-50)",
+                borderColor: "var(--blue-consob-800)",
+              },
+            }}
+          >
+           Stampa
+          </Button>
+
+          {/* AGGIUNGI DISPOSITIVO */}
+          <Button
+            variant="contained"
+            onClick={() => {
+              setEditMode(false);
+              closeAddDialog();
+              setOpenAddDialog(true);
+            }}
+            sx={{
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+              borderRadius: 1,
+              textTransform: "none",
+              fontWeight: 500,
+            }}
+          >
+            Aggiungi Nuovo Dispositivo
+          </Button>
+        </Box>
       </Box>
 
       {/* Filtri di ricerca */}
@@ -624,6 +685,7 @@ function DeviceManagementComponent() {
                     <TableCell sx={{ fontWeight: 600 }}>Asset</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>IMEI</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Dispositivo</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Convenzione</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Modello</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Numero Serie</TableCell>
                     <TableCell
@@ -647,6 +709,7 @@ function DeviceManagementComponent() {
                       <TableCell>{d.asset}</TableCell>
                       <TableCell>{d.imei || "—"}</TableCell>
                       <TableCell>{d.dispositivo || "—"}</TableCell>
+                      <TableCell>{d.convenzione || "—"}</TableCell>
                       <TableCell>{d.modello || "—"}</TableCell>
                       <TableCell>{d.numeroSerie || "—"}</TableCell>
 
@@ -786,8 +849,8 @@ function DeviceManagementComponent() {
                   }}
                 >
                   {deviceTypes.map((t) => (
-                    <MenuItem key={t.id} value={t.descrizione}>
-                      {t.descrizione}
+                    <MenuItem key={t.id} value={t.desTipoDispositivo}>
+                      {t.desTipoDispositivo}
                     </MenuItem>
                   ))}
                 </Select>
@@ -857,6 +920,10 @@ function DeviceManagementComponent() {
                   onChange={(e) =>
                     setNewDevice({ ...newDevice, modello: e.target.value })
                   }
+                  MenuProps={{
+                    disablePortal: false,
+                    sx: { zIndex: 1600 },
+                  }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       backgroundColor: "var(--neutro-100)",
@@ -983,7 +1050,7 @@ function DeviceManagementComponent() {
                   onChange={(e) =>
                     setNewDevice({ ...newDevice, gestore: e.target.value })
                   }
-                   MenuProps={{
+                  MenuProps={{
                     disablePortal: false,
                     sx: { zIndex: 1600 },
                   }}
@@ -994,8 +1061,8 @@ function DeviceManagementComponent() {
                   }}
                 >
                   {mobileProviders.map((p) => (
-                    <MenuItem key={p.id} value={p.descrizione}>
-                      {p.descrizione}
+                    <MenuItem key={p.id} value={p.desGestore}>
+                      {p.desGestore}
                     </MenuItem>
                   ))}
                 </Select>
@@ -1022,10 +1089,48 @@ function DeviceManagementComponent() {
                       backgroundColor: "var(--neutro-100)",
                     },
                   }}
+                  MenuProps={{
+                    disablePortal: false,
+                    sx: { zIndex: 1600 },
+                  }}
                 >
                   {deviceStatuses.map((s) => (
-                    <MenuItem key={s.id} value={s.descrizione}>
-                      {s.descrizione}
+                    <MenuItem key={s.id} value={s.desStato}>
+                      {s.desStato}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Convenzione */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Convenzione
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={newDevice.convenzione}
+                  onChange={(e) =>
+                    setNewDevice({ ...newDevice, convenzione: e.target.value })
+                  }
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
+                  MenuProps={{
+                    disablePortal: false,
+                    sx: { zIndex: 1600 },
+                  }}
+                >
+                  {conventions.map((c) => (
+                    <MenuItem key={c.convenzione} value={c.convenzione}>
+                      {c.convenzione}
                     </MenuItem>
                   ))}
                 </Select>
@@ -1176,6 +1281,411 @@ function DeviceManagementComponent() {
             }}
           >
             Chiudi
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* DIALOG ESPORTA CSV DISPOSITIVI - STILE CORRETTO */}
+      <Dialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        maxWidth="lg"
+        fullWidth
+        sx={{ zIndex: 1501 }}
+      >
+        <DialogTitle
+          className="row blue-band align-items-center"
+          sx={{
+            backgroundColor: "var(--blue-consob-600)",
+            color: "white",
+            textAlign: "center",
+          }}
+        >
+          Esporta Dispositivi in CSV
+        </DialogTitle>
+
+        <DialogContent sx={{ pt: 4, m: 2 }}>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ mb: 3, textAlign: "center" }}
+          >
+            Applica filtri per esportare solo i dispositivi desiderati. Lascia
+            vuoto per esportare tutto.
+          </Typography>
+
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "1fr 1fr",
+                lg: "1fr 1fr 1fr",
+              },
+            }}
+          >
+            {/* Data Inizio */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Data Inizio
+              </Typography>
+              <TextField
+                type="date"
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                value={exportFilters.ddtInizio || ""}
+                onChange={(e) =>
+                  setExportFilters({
+                    ...exportFilters,
+                    ddtInizio: e.target.value || undefined,
+                  })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Data Fine */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Data Fine
+              </Typography>
+              <TextField
+                type="date"
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                value={exportFilters.ddtFine || ""}
+                onChange={(e) =>
+                  setExportFilters({
+                    ...exportFilters,
+                    ddtFine: e.target.value || undefined,
+                  })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Tipo Dispositivo */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Tipo Dispositivo
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={exportFilters.tipoDispositivoId || ""}
+                  onChange={(e) =>
+                    setExportFilters({
+                      ...exportFilters,
+                      tipoDispositivoId: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  displayEmpty
+                  MenuProps={{ disablePortal: false, sx: { zIndex: 1600 } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
+                >
+                  {deviceTypes.map((t) => (
+                    <MenuItem key={t.id} value={t.id}>
+                      {t.desTipoDispositivo}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Modello */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Modello
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={exportFilters.modelloId || ""}
+                  onChange={(e) =>
+                    setExportFilters({
+                      ...exportFilters,
+                      modelloId: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  displayEmpty
+                  MenuProps={{ disablePortal: false, sx: { zIndex: 1600 } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
+                >
+                  {deviceModels.map((m) => (
+                    <MenuItem key={m.id} value={m.id}>
+                      {m.desModello}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Gestore */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Gestore
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={exportFilters.gestoreId || ""}
+                  onChange={(e) =>
+                    setExportFilters({
+                      ...exportFilters,
+                      gestoreId: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  displayEmpty
+                  MenuProps={{ disablePortal: false, sx: { zIndex: 1600 } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
+                >
+                  {mobileProviders.map((p) => (
+                    <MenuItem key={p.id} value={p.id}>
+                      {p.desGestore}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Stato */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Stato
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={exportFilters.statoId || ""}
+                  onChange={(e) =>
+                    setExportFilters({
+                      ...exportFilters,
+                      statoId: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    })
+                  }
+                  displayEmpty
+                  MenuProps={{ disablePortal: false, sx: { zIndex: 1600 } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
+                >
+                  {deviceStatuses.map((s) => (
+                    <MenuItem key={s.id} value={s.id}>
+                      {s.desStato}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Convenzione */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Convenzione
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={exportFilters.convenzioneId || ""}
+                  onChange={(e) =>
+                    setExportFilters({
+                      ...exportFilters,
+                      convenzioneId: e.target.value || undefined,
+                    })
+                  }
+                  displayEmpty
+                  MenuProps={{ disablePortal: false, sx: { zIndex: 1600 } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
+                >
+                  {conventions.map((c) => (
+                    <MenuItem key={c.convenzione} value={c.convenzione}>
+                      {c.convenzione}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Tipo Servizio */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Tipo Servizio
+              </Typography>
+              <FormControl fullWidth size="small">
+                <Select
+                  value={exportFilters.codTipoServizio || ""}
+                  onChange={(e) =>
+                    setExportFilters({
+                      ...exportFilters,
+                      codTipoServizio: e.target.value as "F" | "D" | "FD" | "",
+                    })
+                  }
+                  displayEmpty
+                  MenuProps={{ disablePortal: false, sx: { zIndex: 1600 } }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "var(--neutro-100)",
+                    },
+                  }}
+                >
+                  {serviceType.map((s) => (
+                    <MenuItem key={s.codTipoServizio} value={s.codTipoServizio}>
+                      {s.codTipoServizio}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+
+            {/* Sede */}
+            <Box>
+              <Typography
+                variant="body2"
+                color="var(--neutro-800)"
+                sx={{ mb: 0.5, fontWeight: 500 }}
+              >
+                Sede (es. RM)
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                value={exportFilters.codSede || ""}
+                onChange={(e) =>
+                  setExportFilters({
+                    ...exportFilters,
+                    codSede: e.target.value.toUpperCase(),
+                  })
+                }
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    backgroundColor: "var(--neutro-100)",
+                  },
+                }}
+              />
+            </Box>
+
+            {/* Checkbox - Includi aperti */}
+            <Box
+              sx={{
+                gridColumn: { xs: "1 / -1" },
+                display: "flex",
+                alignItems: "center",
+                mt: 1,
+              }}
+            >
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={exportFilters.includeOpen ?? true}
+                    onChange={(e) =>
+                      setExportFilters({
+                        ...exportFilters,
+                        includeOpen: e.target.checked,
+                      })
+                    }
+                  />
+                }
+                label={
+                  <Typography
+                    variant="body2"
+                    color="var(--neutro-800)"
+                    sx={{ fontWeight: 500 }}
+                  >
+                    Includi dispositivi senza data fine (aperti)
+                  </Typography>
+                }
+              />
+            </Box>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setExportDialogOpen(false)}>Annulla</Button>
+          <Button
+            variant="contained"
+            startIcon={<PrintIcon />}
+            onClick={async () => {
+              setExportDialogOpen(false);
+              DeviceExportService.setData(filteredDevices);
+              const success = await DeviceExportService.exportCsv(
+                exportFilters
+              );
+
+              if (success) {
+                setSuccessMessage("Esportazione CSV completata con successo!");
+                setSuccessModalOpen(true);
+              }
+            }}
+            sx={{
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+            }}
+          >
+            Scarica CSV
           </Button>
         </DialogActions>
       </Dialog>

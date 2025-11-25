@@ -5,20 +5,18 @@ export interface DeviceModel {
 
 export interface DeviceType {
   id: number;
-  codice: string;
-  descrizione: string;
+  desTipoDispositivo: string;
 }
 
 export interface MobileProvider {
   id: number;
-  codice: string;
-  descrizione: string;
+  desGestore: string;
+  gestoreId?: number;
 }
 
 export interface DeviceStatus {
   id: number;
-  codice: string;
-  descrizione: string;
+  desStato: string;
   alias: string;
 }
 
@@ -63,6 +61,7 @@ export interface DeviceManagement {
   fornitore: string;
   gestore: string;
   servizio: string;
+  convenzione: string;
   note: string;
   inizio: string;
   fine: string;
@@ -74,13 +73,37 @@ export type DeviceFormManagement = Omit<DeviceManagement, "id"> & {
 
 export type ServiceType = {
   id: number;
+  codTipoServizio: string;
   descrizione: string;
 }
 
 export type Convention = {
   id: number;
-  descrizione: string;
+  convenzione: string;
+  descrizioneConvenzione: string;
 }
+export interface AssegnazioneDispositivoSearchRequest {
+  codUtente?: string;
+  codUnitOrg?: string;
+  dataInizio?: string;
+  dataFine?: string;
+  dataRiferimento?: string;
+  asset?: string;
+}
+
+export interface DeviceExportRequest {
+  ddtInizio?: string;
+  ddtFine?: string;
+  tipoDispositivoId?: number;
+  modelloId?: number;
+  gestoreId?: number;
+  statoId?: number;
+  convenzioneId?: string;
+  codTipoServizio?: string;
+  codSede?: string;
+  includeOpen?: boolean;
+}
+
 
 export type Method = "get" | "post" | "put" | "delete";
 

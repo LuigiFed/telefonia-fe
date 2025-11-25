@@ -17,7 +17,7 @@ import { useGenericCrud } from "../../hooks/useGenericCrud";
 function MobileProvidersComponent() {
   const crud = useGenericCrud<
     MobileProvider,
-    { id: string; descrizione: string }
+    { id: string; desGestore: string }
   >({
     endpoints: {
       list: API.mobileProviders.list,
@@ -26,24 +26,24 @@ function MobileProvidersComponent() {
       delete: API.mobileProviders.delete,
     },
     itemName: "provider",
-    createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
+    createEmptyItem: () => ({ id: 0, desGestore: "" }),
     getItemId: (item) => item.id,
     validateItem: (item) => {
-      if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
+      if (!item.desGestore.trim()) return "La desGestore è obbligatoria.";
       return null;
     },
   });
   const filterFunction = (
     items: MobileProvider[],
-    criteria: { id: string; descrizione: string }
+    criteria: { id: string; desGestore: string }
   ) => {
     return items.filter((i) => {
       return (
         (!criteria.id || i.id.toString().includes(criteria.id)) &&
-        (!criteria.descrizione ||
-          i.descrizione
+        (!criteria.desGestore ||
+          (i.desGestore ?? "")
             .toLowerCase()
-            .includes(criteria.descrizione.toLowerCase()))
+            .includes(criteria.desGestore.toLowerCase()))
       );
     });
   };
@@ -66,7 +66,6 @@ function MobileProvidersComponent() {
     editMode,
     currentItem,
     setCurrentItem,
-    saveItem: handleSaveItem,
     deleteModalOpen,
     setDeleteModalOpen,
     confirmDelete: handleConfirmDelete,
@@ -74,6 +73,32 @@ function MobileProvidersComponent() {
     setSuccessModalOpen,
     successMessage,
   } = crud;
+
+const saveItem = async (): Promise<void> => {
+  if (!currentItem) return;
+
+  const payload = {
+    gestoreId: currentItem.id,
+    desGestore: currentItem.desGestore,
+  };
+
+  const url = editMode
+    ? API.mobileProviders.update.replace(":id", currentItem.id.toString())
+    : API.mobileProviders.create;
+
+  const method = editMode ? "PUT" : "POST";
+
+  await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  closeDialog();
+  crud.refreshItems();
+};
+
+
 
   return (
     <section
@@ -97,16 +122,16 @@ function MobileProvidersComponent() {
             minWidth: 120,
           },
           {
-            label: "Descrizione",
-            value: searchCriteria.descrizione,
+            label: "Descrizione Gestore",
+            value: searchCriteria.desGestore,
             onChange: (v) =>
-              setSearchCriteria({ ...searchCriteria, descrizione: v }),
+              setSearchCriteria({ ...searchCriteria, desGestore: v }),
             minWidth: 200,
             flex: 1,
           },
         ]}
         onSearch={() => crud.applySearch(filterFunction)}
-        onClear={() => crud.clearSearch({ id: "", descrizione: "" })}
+        onClear={() => crud.clearSearch({ id: "", desGestore: "" })}
       />
 
       {/* Loading */}
@@ -120,20 +145,20 @@ function MobileProvidersComponent() {
       )}
 
       {/* Messaggio iniziale */}
-      {!isFiltered && !loading && (
+      {/* {!isFiltered && !loading && (
         <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
           <Typography variant="body1">
             Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
           </Typography>
         </Box>
-      )}
+      )} */}
 
       {/* Tabella */}
       <GenericTable<MobileProvider>
         data={filteredItems}
         columns={[
           { key: "id", label: "ID", width: "15%" },
-          { key: "descrizione", label: "Descrizione", width: "50%" },
+          { key: "desGestore", label: "Descrizione Gestore", width: "50%" ,  render: (row) => row.desGestore ?? ""},
           { key: "actions", label: "Azioni", width: "15%", align: "center" },
         ]}
         page={page}
@@ -142,7 +167,7 @@ function MobileProvidersComponent() {
         onRowsPerPageChange={setRowsPerPage}
         onEdit={handleEdit}           
         onDelete={handleDelete}   
-        showList={isFiltered && !loading}
+        showList={true}
         loading={loading}
         emptyMessage="Nessun provider trovato."
         isFiltered={isFiltered}
@@ -164,17 +189,12 @@ function MobileProvidersComponent() {
             helperText: editMode ? "Il ID non può essere modificato" : "",
           },
           {
-            label: "Codice",
-            value: currentItem.codice,
-            onChange: (v) => setCurrentItem({ ...currentItem, codice: v }),
-          },
-          {
-            label: "Descrizione",
-            value: currentItem.descrizione,
-            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
+            label: "Descrizione Gestore",
+            value: currentItem.desGestore,
+            onChange: (v) => setCurrentItem({ ...currentItem, desGestore: v }),
           },
         ]}
-        onSave={handleSaveItem}
+        onSave={saveItem} 
         editMode={editMode}
       />
 

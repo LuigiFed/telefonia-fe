@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PrintIcon from "@mui/icons-material/Print";
 import {
   Paper,
   CircularProgress,
@@ -43,6 +44,7 @@ import type {
 } from "../types/types";
 import { API } from "../mock/mock/api/endpoints";
 import EditIcon from "@mui/icons-material/Edit";
+import { ExportService } from "../mock/mock/ExportService";
 
 function DeviceAssignmentComponent() {
   // RIFERIMENTI
@@ -127,6 +129,12 @@ function DeviceAssignmentComponent() {
   const [page, setPage] = useState(1);
   const [devicePage, setDevicePage] = useState(1);
   const deviceRowsPerPage = 5;
+
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFilters, setExportFilters] = useState({
+    dataInizio: "",
+    dataFine: "",
+  });
 
   const paginatedAssegnazioni = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -244,6 +252,11 @@ function DeviceAssignmentComponent() {
     setFilteredAssegnatari([]);
     setAssegnatarioSelezionato(null);
   };
+  useEffect(() => {
+    if (allAssegnatari.length > 0 && filteredAssegnatari.length === 0) {
+      setFilteredAssegnatari(allAssegnatari.slice(0, 50));
+    }
+  }, [allAssegnatari, filteredAssegnatari.length]);
 
   // RICERCA DISPOSITIVI (SOLO IN ASSEGNA)
   const applySearchDispositivo = () => {
@@ -255,11 +268,13 @@ function DeviceAssignmentComponent() {
         d.asset.toLowerCase().includes(s.asset.toLowerCase())
       );
     if (s.tipo)
-      results = results.filter((d) => d.dispositivo === s.tipo?.descrizione);
+      results = results.filter(
+        (d) => d.dispositivo === s.tipo?.desTipoDispositivo
+      );
     if (s.modello)
       results = results.filter((d) => d.modello === s.modello?.desModello);
     if (s.gestore)
-      results = results.filter((d) => d.gestore === s.gestore?.descrizione);
+      results = results.filter((d) => d.gestore === s.gestore?.desGestore);
     if (s.numeroTelefono)
       results = results.filter((d) =>
         d.numeroTelefono.includes(s.numeroTelefono)
@@ -273,7 +288,7 @@ function DeviceAssignmentComponent() {
         d.fornitore.toLowerCase().includes(s.fornitore.toLowerCase())
       );
     if (s.stato)
-      results = results.filter((d) => d.stato === s.stato?.descrizione);
+      results = results.filter((d) => d.stato === s.stato?.desStato);
 
     setFilteredDispositivi(results);
     setDevicePage(1);
@@ -401,6 +416,38 @@ function DeviceAssignmentComponent() {
     setMenuId(null);
   };
 
+  const handleExportCsv = async () => {
+    if (!assegnatarioSelezionato) {
+      alert("Seleziona prima un assegnatario.");
+      return;
+    }
+
+    setExportDialogOpen(true); // Apre il dialog
+  };
+
+  const handleConfirmExport = async () => {
+    try {
+      await ExportService.exportCsv({
+        codUtente: assegnatarioSelezionato!.id.toString(),
+        dataInizio: exportFilters.dataInizio || undefined,
+        dataFine: exportFilters.dataFine || undefined,
+      });
+
+      setSuccessMessage("Report CSV esportato con successo!");
+      setSuccessModalOpen(true);
+      setExportDialogOpen(false);
+      setExportFilters({ dataInizio: "", dataFine: "" });
+    } catch (error) {
+     console.error(error || "Errore durante l'esportazione del report CSV.");
+    }
+  };
+
+  useEffect(() => {
+  if (assegnatarioSelezionato && assegnazioni.length > 0) {
+    ExportService.setData(assegnazioni, assegnatarioSelezionato);
+  }
+}, [assegnatarioSelezionato, assegnazioni]);
+
   return (
     <section className="menu-gestione" style={{ margin: "16px" }}>
       {/* HEADER */}
@@ -415,20 +462,50 @@ function DeviceAssignmentComponent() {
         <Typography variant="h6" className="title">
           Gestione Assegnazione Dispositivi
         </Typography>
-        <Button
-          variant="contained"
-          onClick={openAddDialogHandler}
-          disabled={!assegnatarioSelezionato}
-          sx={{
-            backgroundColor: "var(--blue-consob-600)",
-            "&:hover": { backgroundColor: "var(--blue-consob-800)" },
-            borderRadius: 1,
-            textTransform: "none",
-            fontWeight: 500,
-          }}
-        >
-          Assegna Dispositivo
-        </Button>
+
+        <Box sx={{ display: "flex", gap: 2 }}>
+          {/* Bottone Stampa */}
+          <Button
+            variant="outlined"
+            onClick={handleExportCsv}
+            disabled={!assegnatarioSelezionato}
+            startIcon={<PrintIcon />}
+            sx={{
+              borderColor: "var(--blue-consob-600)",
+              color: "var(--blue-consob-600)",
+              textTransform: "none",
+              fontWeight: 500,
+              minWidth: 160,
+              "&:hover": {
+                bgcolor: "var(--blue-consob-50)",
+                borderColor: "var(--blue-consob-800)",
+              },
+              "&.Mui-disabled": {
+                borderColor: "rgba(0, 0, 0, 0.12)",
+                color: "rgba(0, 0, 0, 0.26)",
+              },
+            }}
+          >
+            Stampa
+          </Button>
+
+          {/* Bottone Assegna Dispositivo */}
+          <Button
+            variant="contained"
+            onClick={openAddDialogHandler}
+            disabled={!assegnatarioSelezionato}
+            sx={{
+              backgroundColor: "var(--blue-consob-600)",
+              "&:hover": { backgroundColor: "var(--blue-consob-800)" },
+              borderRadius: 1,
+              textTransform: "none",
+              fontWeight: 500,
+              minWidth: 180,
+            }}
+          >
+            Assegna Dispositivo
+          </Button>
+        </Box>
       </Box>
 
       {/* 1. RICERCA ASSEGNATARIO */}
@@ -503,7 +580,7 @@ function DeviceAssignmentComponent() {
           </Button>
         </Box>
 
-        <Collapse in={filteredAssegnatari.length > 0}>
+        <Collapse in={true}>
           <TableContainer
             component={Paper}
             elevation={0}
@@ -541,60 +618,66 @@ function DeviceAssignmentComponent() {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredAssegnatari.slice(0, 5).map((a) => (
-                  <TableRow
-                    key={a.id}
-                    hover
-                    sx={{
-                      backgroundColor:
-                        assegnatarioSelezionato?.id === a.id
-                          ? "action.selected"
-                          : "inherit",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => setAssegnatarioSelezionato(a)}
-                  >
-                    <TableCell
-                      sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
-                    >
-                      {a.nome} {a.cognome}
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
-                    >
-                      {a.id}
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
-                    >
-                      {a.tipoUtente}
-                    </TableCell>
-                    <TableCell
-                      sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
-                    >
-                      {a.unitaOrganizzativa}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Button
-                        size="small"
-                        variant={
-                          assegnatarioSelezionato?.id === a.id
-                            ? "contained"
-                            : "outlined"
-                        }
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAssegnatarioSelezionato(a);
-                        }}
-                        disabled={assegnatarioSelezionato?.id === a.id}
-                      >
-                        {assegnatarioSelezionato?.id === a.id
-                          ? "Selezionato"
-                          : "Seleziona"}
-                      </Button>
-                    </TableCell>
+                {filteredAssegnatari.length === 0 ? (
+                  <TableRow sx={{ height: 53 }}>
+                    <TableCell colSpan={5} sx={{ borderBottom: "none" }} />
                   </TableRow>
-                ))}
+                ) : (
+                  filteredAssegnatari.slice(0, 5).map((a) => (
+                    <TableRow
+                      key={a.id}
+                      hover
+                      sx={{
+                        backgroundColor:
+                          assegnatarioSelezionato?.id === a.id
+                            ? "action.selected"
+                            : "inherit",
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setAssegnatarioSelezionato(a)}
+                    >
+                      <TableCell
+                        sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
+                      >
+                        {a.nome} {a.cognome}
+                      </TableCell>
+                      <TableCell
+                        sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
+                      >
+                        {a.id}
+                      </TableCell>
+                      <TableCell
+                        sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
+                      >
+                        {a.tipoUtente}
+                      </TableCell>
+                      <TableCell
+                        sx={{ fontWeight: 400, color: "var(--neutro-700)" }}
+                      >
+                        {a.unitaOrganizzativa}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Button
+                          size="small"
+                          variant={
+                            assegnatarioSelezionato?.id === a.id
+                              ? "contained"
+                              : "outlined"
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAssegnatarioSelezionato(a);
+                          }}
+                          disabled={assegnatarioSelezionato?.id === a.id}
+                        >
+                          {assegnatarioSelezionato?.id === a.id
+                            ? "Selezionato"
+                            : "Seleziona"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </TableContainer>
@@ -892,12 +975,12 @@ function DeviceAssignmentComponent() {
                   </Typography>
                   <Autocomplete
                     options={deviceTypes}
-                    getOptionLabel={(o) => o.descrizione}
+                    getOptionLabel={(o) => o.desTipoDispositivo}
                     value={searchDispositivo.tipo}
                     onChange={(_, v) =>
                       setSearchDispositivo({ ...searchDispositivo, tipo: v })
                     }
-                     componentsProps={{
+                    componentsProps={{
                       popper: { sx: { zIndex: 1600 } },
                     }}
                     renderInput={(params) => (
@@ -956,12 +1039,12 @@ function DeviceAssignmentComponent() {
                   </Typography>
                   <Autocomplete
                     options={mobileProviders}
-                    getOptionLabel={(o) => o.descrizione}
+                    getOptionLabel={(o) => o.desGestore}
                     value={searchDispositivo.gestore}
                     onChange={(_, v) =>
                       setSearchDispositivo({ ...searchDispositivo, gestore: v })
                     }
-                     componentsProps={{
+                    componentsProps={{
                       popper: { sx: { zIndex: 1600 } },
                     }}
                     renderInput={(params) => (
@@ -1066,12 +1149,12 @@ function DeviceAssignmentComponent() {
                   </Typography>
                   <Autocomplete
                     options={deviceStatuses}
-                    getOptionLabel={(o) => o.descrizione}
+                    getOptionLabel={(o) => o.alias}
                     value={searchDispositivo.stato}
                     onChange={(_, v) =>
                       setSearchDispositivo({ ...searchDispositivo, stato: v })
                     }
-                     componentsProps={{
+                    componentsProps={{
                       popper: { sx: { zIndex: 1600 } },
                     }}
                     renderInput={(params) => (
@@ -1290,6 +1373,10 @@ function DeviceAssignmentComponent() {
                       stato: e.target.value,
                     })
                   }
+                  MenuProps={{
+                    disablePortal: false,
+                    sx: { zIndex: 1600 },
+                  }}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       backgroundColor: "var(--neutro-100)",
@@ -1297,8 +1384,8 @@ function DeviceAssignmentComponent() {
                   }}
                 >
                   {deviceStatuses.map((s) => (
-                    <MenuItem key={s.id} value={s.descrizione}>
-                      {s.descrizione}
+                    <MenuItem key={s.id} value={s.desStato}>
+                      {s.desStato}
                     </MenuItem>
                   ))}
                 </Select>
@@ -1461,6 +1548,78 @@ function DeviceAssignmentComponent() {
             }}
           >
             Chiudi
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* DIALOG ESPORTAZIONE CSV CON FILTRI */}
+      <Dialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ bgcolor: "var(--blue-consob-600)", color: "white" }}>
+          Esporta Assegnazioni in CSV
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 ,m:3}}>
+          <Typography variant="subtitle1" gutterBottom>
+            Assegnatario:{" "}
+            <strong>
+              {assegnatarioSelezionato?.nome} {assegnatarioSelezionato?.cognome}
+            </strong>
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Lascia vuote le date per esportare tutto lo storico.
+          </Typography>
+
+          <Box
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateColumns: "1fr 1fr",
+              mt: 1,
+            }}
+          >
+            <TextField
+              label="Data Inizio"
+              type="date"
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              value={exportFilters.dataInizio}
+              onChange={(e) =>
+                setExportFilters({
+                  ...exportFilters,
+                  dataInizio: e.target.value,
+                })
+              }
+            />
+            <TextField
+              label="Data Fine"
+              type="date"
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              value={exportFilters.dataFine}
+              onChange={(e) =>
+                setExportFilters({ ...exportFilters, dataFine: e.target.value })
+              }
+            />
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setExportDialogOpen(false)}>Annulla</Button>
+          <Button
+            variant="contained"
+            startIcon={<PrintIcon />}
+            onClick={handleConfirmExport}
+            sx={{
+              bgcolor: "var(--blue-consob-600)",
+              "&:hover": { bgcolor: "var(--blue-consob-800)" },
+            }}
+          >
+            Scarica CSV
           </Button>
         </DialogActions>
       </Dialog>

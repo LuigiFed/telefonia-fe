@@ -47,7 +47,7 @@ export const API = {
     delete: `${RestService.ASSEGNATARI}/${ENTITY.ASSEGNATARI}${ACTION.DELETE}/:id` as const,
   } as const,
   deviceManagement: {
-      list: `${RestService.DEVICE_MANAGEMENT}/${ACTION.ALL}` as const,
+    list: `${RestService.DEVICE_MANAGEMENT}/${ACTION.ALL}` as const,
     create: `${RestService.DEVICE_MANAGEMENT}/${ENTITY.DEVICE_MANAGEMENT}${ACTION.INSERT}` as const,
     update: `${RestService.DEVICE_MANAGEMENT}/${ENTITY.DEVICE_MANAGEMENT}${ACTION.UPDATE}/:id` as const,
     delete: `${RestService.DEVICE_MANAGEMENT}/${ENTITY.DEVICE_MANAGEMENT}${ACTION.DELETE}/:id` as const,

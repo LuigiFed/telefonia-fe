@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography} from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 
 import { DeleteConfirmModal } from "../generics-components/DeleteModal";
 import { GenericFormDialog } from "../generics-components/GenericFormDialog";
@@ -7,136 +7,149 @@ import { GenericSearchFilters } from "../generics-components/GenericSearchFilter
 import { GenericTable } from "../generics-components/GenericTable";
 import { SuccessModal } from "../generics-components/SuccessModal";
 
-
-import "../../theme/default/InputFields.css";
-
 import { API } from "../../mock/mock/api/endpoints";
 import type { ServiceType } from "../../types/types";
 import { useGenericCrud } from "../../hooks/useGenericCrud";
 
 function ServiceTypeComponent() {
-  const crud = useGenericCrud<ServiceType,{ id: string; descrizione: string }>({
-     endpoints: {
-       list: API.serviceTypes.list,
-       create: API.serviceTypes.create,
-       update: API.serviceTypes.update,
-       delete: API.serviceTypes.delete,
-     },
-     itemName: "tipo",
-     createEmptyItem: () => ({ id: 0, codice: "", descrizione: "" }),
-     getItemId: (item) => item.id,
-     validateItem: (item) => {
-       if (!item.descrizione.trim()) return "La descrizione è obbligatoria.";
-       return null;
-     },
-   });
-   const filterFunction = (
-     items: ServiceType[],
-     criteria: { id: string; descrizione: string }
-   ) => {
-     return items.filter((i) => {
-       return (
-         (!criteria.id || i.id.toString().includes(criteria.id)) &&
-         (!criteria.descrizione ||
-           i.descrizione
-             .toLowerCase()
-             .includes(criteria.descrizione.toLowerCase()))
-       );
-     });
-   };
- 
-   const {
-     searchCriteria,
-     setSearchCriteria,
-     filteredItems,
-     loading,
-     isFiltered,
-     openAddDialog,
-     openDialog,
-     closeDialog,
-     page,
-     rowsPerPage,
-     setPage,
-     setRowsPerPage,
-     handleEdit,        
-     handleDelete,     
-     editMode,
-     currentItem,
-     setCurrentItem,
-     saveItem: handleSaveItem,
-     deleteModalOpen,
-     setDeleteModalOpen,
-     confirmDelete: handleConfirmDelete,
-     successModalOpen,
-     setSuccessModalOpen,
-     successMessage,
-   } = crud;
+  const crud = useGenericCrud<ServiceType>({
+    endpoints: {
+      list: API.serviceTypes.list,
+      create: API.serviceTypes.create,
+      update: API.serviceTypes.update,
+      delete: API.serviceTypes.delete,
+    },
+    itemName: "tipo servizio",
+    createEmptyItem: () => ({ id: 0, codTipoServizio: "", descrizione: "" }),
+    getItemId: (item) => item.id,
+    validateItem: (item) => {
+      if (!item.descrizione?.trim()) return "La descrizione è obbligatoria.";
+      if (!item.codTipoServizio?.trim()) return "Il codice è obbligatorio.";
+      return null;
+    },
+  });
+
+  const filterFunction = (
+    items: ServiceType[],
+    criteria: Record<string, string>
+  ) => {
+    const { id = "", descrizione = "", codice = "" } = criteria;
+    return items.filter((i) => {
+      return (
+        (!id || i.id.toString().includes(id)) &&
+        (!codice ||
+          (i.codTipoServizio ?? "").toLowerCase().includes(codice.toLowerCase())) &&
+        (!descrizione ||
+          (i.descrizione ?? "")
+            .toLowerCase()
+            .includes(descrizione.toLowerCase()))
+      );
+    });
+  };
+
+  const {
+    searchCriteria,
+    setSearchCriteria,
+    filteredItems,
+    loading,
+    openAddDialog,
+    openDialog,
+    closeDialog,
+    page,
+    rowsPerPage,
+    setPage,
+    setRowsPerPage,
+    handleEdit,
+    handleDelete,
+    editMode,
+    saveItem,
+    currentItem,
+    setCurrentItem,
+    deleteModalOpen,
+    setDeleteModalOpen,
+    confirmDelete,
+    successModalOpen,
+    setSuccessModalOpen,
+    successMessage,
+    isFiltered,
+  } = crud;
 
 
   return (
-    <section className="menu-gestione" style={{ marginLeft: 16, marginRight: 16 }}>
-      {/* Header */}
+    <section
+      className="menu-gestione"
+      style={{ marginLeft: 16, marginRight: 16 }}
+    >
       <GenericSearchHeader
-        title="Cerca Tipi di Servizio"
+        title="Gestione Tipi di Servizio"
         onAddNew={openAddDialog}
-        addButtonLabel="Aggiungi Nuovo Tipo Servizio"
+        addButtonLabel="Aggiungi Tipo Servizio"
       />
 
-      {/* Filtri */}
       <GenericSearchFilters
         fields={[
           {
             label: "ID",
-            value: searchCriteria.id,
-            onChange: v => setSearchCriteria({ ...searchCriteria, id: v }),
+            value: searchCriteria.id || "",
+            onChange: (v) => setSearchCriteria({ ...searchCriteria, id: v }),
+            minWidth: 100,
+          },
+          {
+            label: "Codice",
+            value: searchCriteria.codice || "",
+            onChange: (v) =>
+              setSearchCriteria({ ...searchCriteria, codice: v }),
             minWidth: 120,
           },
           {
             label: "Descrizione",
-            value: searchCriteria.descrizione,
-            onChange: v => setSearchCriteria({ ...searchCriteria, descrizione: v }),
+            value: searchCriteria.descrizione || "",
+            onChange: (v) =>
+              setSearchCriteria({ ...searchCriteria, descrizione: v }),
             minWidth: 200,
             flex: 1,
           },
         ]}
         onSearch={() => crud.applySearch(filterFunction)}
-        onClear={() => crud.clearSearch({ id: "", descrizione: "" })}
+        onClear={() =>
+          crud.clearSearch({ id: "", codice: "", descrizione: "" })
+        }
       />
 
-      {/* Loading */}
       {loading && (
         <Box sx={{ textAlign: "center", py: 4 }}>
           <CircularProgress color="primary" />
           <Typography variant="body1" color="var(--neutro-600)" sx={{ mt: 1 }}>
-            Caricamento...
+            Caricamento tipi servizio...
           </Typography>
         </Box>
       )}
 
-      {/* Messaggio iniziale */}
-      {!isFiltered && !loading && (
-        <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
-          <Typography variant="body1">
-            Inserisci i criteri di ricerca e clicca <strong>Ricerca</strong>
-          </Typography>
-        </Box>
-      )}
-
-      {/* Tabella */}
       <GenericTable<ServiceType>
         data={filteredItems}
         columns={[
-          { key: "id", label: "ID", width: "20%" },
-          { key: "descrizione", label: "Descrizione", width: "65%" },
-          { key: "actions", label: "Azioni", width: "15%", align: "center" },
+          { key: "id", label: "ID", width: "15%" },
+          {
+            key: "codTipoServizio",
+            label: "Codice",
+            width: "20%",
+            render: (row) =>  row.codTipoServizio || "",
+          },
+          {
+            key: "descrizione",
+            label: "Descrizione",
+            width: "55%",
+            render: (row) => row.descrizione ?? "",
+          },
+          { key: "actions", label: "Azioni", width: "10%", align: "center" },
         ]}
         page={page}
         rowsPerPage={rowsPerPage}
         onPageChange={setPage}
         onRowsPerPageChange={setRowsPerPage}
-        onEdit={handleEdit}           
-        onDelete={handleDelete}   
-        showList={isFiltered && !loading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        showList={true}
         loading={loading}
         emptyMessage="Nessun tipo servizio trovato."
         isFiltered={isFiltered}
@@ -144,39 +157,41 @@ function ServiceTypeComponent() {
         itemName="tipo servizio"
       />
 
-      {/* Dialog Aggiungi/Modifica */}
       <GenericFormDialog
         open={openDialog}
         onClose={closeDialog}
-        title={editMode ? "Modifica Tipo Servizio" : "Aggiungi Nuovo Tipo Servizio"}
+        title={
+          editMode ? "Modifica Tipo Servizio" : "Aggiungi Nuovo Tipo Servizio"
+        }
         fields={[
           {
-            label: "ID",
-            value: currentItem.id,
-            onChange: () => {},
-            disabled: true,
-            helperText: editMode ? "Il ID non può essere modificato" : "",
+            label: "Codice",
+            value: currentItem.codTipoServizio || "",
+            onChange: (v) =>
+              setCurrentItem({ ...currentItem, codTipoServizio: v.toUpperCase() }),
+            disabled: editMode,
+            helperText: editMode
+              ? "Il codice non può essere modificato"
+              : "Inserisci il codice (es. F, D, FD, o altro valore valido)",
           },
           {
             label: "Descrizione",
-            value: currentItem.descrizione,
-            onChange: v => setCurrentItem({ ...currentItem, descrizione: v }),
+            value: currentItem.descrizione || "",
+            onChange: (v) => setCurrentItem({ ...currentItem, descrizione: v }),
           },
         ]}
-        onSave={handleSaveItem}
+        onSave={saveItem}
         editMode={editMode}
       />
 
-      {/* Conferma Eliminazione */}
       <DeleteConfirmModal
         open={deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
-        onConfirm={handleConfirmDelete}
+        onConfirm={confirmDelete}
         deleting={loading}
         itemName="tipo servizio"
       />
 
-      {/* Successo */}
       <SuccessModal
         open={successModalOpen}
         onClose={() => setSuccessModalOpen(false)}
